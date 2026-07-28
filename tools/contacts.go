@@ -204,7 +204,7 @@ func formatDetailedContact(person *people.Person) []string {
 
 func registerListContacts(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("list_contacts",
-		mcp.WithDescription("List contacts for the authenticated user."),
+		mcp.WithDescription("List contacts (names, emails, phones). Use for 'show my contacts', browse address book. Not targeted lookup — use search_contacts or get_contact."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithNumber("page_size", mcp.Description("Maximum number of contacts to return (default: 100, max: 1000).")),
 		mcp.WithString("page_token", mcp.Description("Token for pagination.")),
@@ -275,7 +275,7 @@ func registerListContacts(s *mcpserver.MCPServer, getClient httpClientFunc) {
 
 func registerGetContact(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_contact",
-		mcp.WithDescription("Get detailed information about a specific contact."),
+		mcp.WithDescription("Get one contact by resource_name/id (full fields). Use after search_contacts. Not for groups — use get_contact_group."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("contact_id", mcp.Required(), mcp.Description("The contact ID (e.g., \"c1234567890\" or full resource name \"people/c1234567890\").")),
 	)
@@ -320,7 +320,7 @@ func registerGetContact(s *mcpserver.MCPServer, getClient httpClientFunc) {
 
 func registerSearchContacts(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("search_contacts",
-		mcp.WithDescription("Search contacts by name, email, phone number, or other fields."),
+		mcp.WithDescription("Search contacts by name, email, phone, etc. Use for 'find John's email'. Prefer get_contact when you already have the contact id."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("query", mcp.Required(), mcp.Description("Search query string (searches names, emails, phone numbers).")),
 		mcp.WithNumber("page_size", mcp.Description("Maximum number of results to return (default: 30, max: 30).")),
@@ -378,7 +378,7 @@ func registerSearchContacts(s *mcpserver.MCPServer, getClient httpClientFunc) {
 
 func registerListContactGroups(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("list_contact_groups",
-		mcp.WithDescription("List contact groups (labels) for the user."),
+		mcp.WithDescription("List contact groups/labels (group ids + names). Use before modify_contact_group_members. Not individual people — use list_contacts."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithNumber("page_size", mcp.Description("Maximum number of groups to return (default: 100, max: 1000).")),
 		mcp.WithString("page_token", mcp.Description("Token for pagination.")),
@@ -538,7 +538,7 @@ func updatePersonFields(p *people.Person) string {
 
 func registerGetContactGroup(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_contact_group",
-		mcp.WithDescription("Get details of a specific contact group including its members."),
+		mcp.WithDescription("Get one contact group + member list by group resource name. Use before adding/removing members."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("group_id", mcp.Required(), mcp.Description("The contact group ID.")),
 		mcp.WithNumber("max_members", mcp.Description("Maximum number of members to return (default: 100, max: 1000).")),
@@ -609,7 +609,7 @@ func registerGetContactGroup(s *mcpserver.MCPServer, getClient httpClientFunc) {
 
 func registerCreateContact(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("create_contact",
-		mcp.WithDescription("Create a new contact."),
+		mcp.WithDescription("Create a new contact (name, emails, phones, etc.). Use for 'add someone to contacts'. Prefer batch_create_contacts for many."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("given_name", mcp.Description("First name.")),
 		mcp.WithString("family_name", mcp.Description("Last name.")),
@@ -657,7 +657,7 @@ func registerCreateContact(s *mcpserver.MCPServer, getClient httpClientFunc) {
 
 func registerUpdateContact(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("update_contact",
-		mcp.WithDescription("Update an existing contact. Note: This replaces fields, not merges them."),
+		mcp.WithDescription("Replace fields on an existing contact (full replace, not merge). Required contact resource name. Confirm before overwriting data."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("contact_id", mcp.Required(), mcp.Description("The contact ID to update.")),
 		mcp.WithString("given_name", mcp.Description("New first name.")),
@@ -728,7 +728,7 @@ func registerUpdateContact(s *mcpserver.MCPServer, getClient httpClientFunc) {
 
 func registerDeleteContact(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("delete_contact",
-		mcp.WithDescription("Delete a contact."),
+		mcp.WithDescription("Delete one contact by resource name. Destructive — confirm when unclear. Prefer batch_delete_contacts for many."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("contact_id", mcp.Required(), mcp.Description("The contact ID to delete.")),
 	)
@@ -765,7 +765,7 @@ func registerDeleteContact(s *mcpserver.MCPServer, getClient httpClientFunc) {
 
 func registerBatchCreateContacts(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("batch_create_contacts",
-		mcp.WithDescription("Create multiple contacts in a batch operation."),
+		mcp.WithDescription("Create many contacts in one call. Use for imports/bulk add. Prefer create_contact for one person."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithArray("contacts", mcp.Required(), mcp.Description("List of contact objects with fields: given_name, family_name, email, phone, organization, job_title."),
 			mcp.Items(map[string]any{"type": "object"})),
@@ -836,7 +836,7 @@ func registerBatchCreateContacts(s *mcpserver.MCPServer, getClient httpClientFun
 
 func registerBatchUpdateContacts(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("batch_update_contacts",
-		mcp.WithDescription("Update multiple contacts in a batch operation."),
+		mcp.WithDescription("Update many contacts (replace fields each). Confirm bulk overwrites. Prefer update_contact for one."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithArray("updates", mcp.Required(), mcp.Description("List of update objects with fields: contact_id (required), given_name, family_name, email, phone, organization, job_title."),
 			mcp.Items(map[string]any{"type": "object"})),
@@ -965,7 +965,7 @@ func registerBatchUpdateContacts(s *mcpserver.MCPServer, getClient httpClientFun
 
 func registerBatchDeleteContacts(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("batch_delete_contacts",
-		mcp.WithDescription("Delete multiple contacts in a batch operation."),
+		mcp.WithDescription("Delete many contacts by resource names. Destructive — confirm when unclear."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithArray("contact_ids", mcp.Required(), mcp.Description("List of contact IDs to delete."),
 			mcp.Items(map[string]any{"type": "string"})),
@@ -1015,7 +1015,7 @@ func registerBatchDeleteContacts(s *mcpserver.MCPServer, getClient httpClientFun
 
 func registerCreateContactGroup(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("create_contact_group",
-		mcp.WithDescription("Create a new contact group (label)."),
+		mcp.WithDescription("Create a contact group/label. Use for 'new group called…'. Add members with modify_contact_group_members."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("name", mcp.Required(), mcp.Description("The name of the new contact group.")),
 	)
@@ -1068,7 +1068,7 @@ func registerCreateContactGroup(s *mcpserver.MCPServer, getClient httpClientFunc
 
 func registerUpdateContactGroup(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("update_contact_group",
-		mcp.WithDescription("Update a contact group's name."),
+		mcp.WithDescription("Rename a contact group. Required group resource name. Not for membership — use modify_contact_group_members."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("group_id", mcp.Required(), mcp.Description("The contact group ID to update.")),
 		mcp.WithString("name", mcp.Required(), mcp.Description("The new name for the contact group.")),
@@ -1122,7 +1122,7 @@ func registerUpdateContactGroup(s *mcpserver.MCPServer, getClient httpClientFunc
 
 func registerDeleteContactGroup(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("delete_contact_group",
-		mcp.WithDescription("Delete a contact group."),
+		mcp.WithDescription("Delete a contact group (label). Does not delete contacts. Destructive — confirm when unclear."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("group_id", mcp.Required(), mcp.Description("The contact group ID to delete.")),
 		mcp.WithBoolean("delete_contacts", mcp.Description("If true, also delete contacts in the group (default: false).")),
@@ -1170,7 +1170,7 @@ func registerDeleteContactGroup(s *mcpserver.MCPServer, getClient httpClientFunc
 
 func registerModifyContactGroupMembers(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("modify_contact_group_members",
-		mcp.WithDescription("Add or remove contacts from a contact group."),
+		mcp.WithDescription("Add or remove contacts from a group. Required group id + contact resource names. Use after list_contact_groups / search_contacts."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("group_id", mcp.Required(), mcp.Description("The contact group ID.")),
 		mcp.WithArray("add_contact_ids", mcp.Description("Contact IDs to add to the group."),

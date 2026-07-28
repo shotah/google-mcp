@@ -215,7 +215,7 @@ func adjustDueMaxForTasksAPI(dueMax string) string {
 
 func registerListTaskLists(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("list_task_lists",
-		mcp.WithDescription("List all task lists for the user."),
+		mcp.WithDescription("List Google Tasks lists (tasklist_id + title). Use for 'what lists do I have' before list_tasks. Not for tasks inside a list — use list_tasks."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithNumber("max_results", mcp.Description("Maximum number of task lists to return (default: 1000, max: 1000).")),
 		mcp.WithString("page_token", mcp.Description("Token for pagination.")),
@@ -271,7 +271,7 @@ func handleListTaskLists(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerGetTaskList(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_task_list",
-		mcp.WithDescription("Get details of a specific task list."),
+		mcp.WithDescription("Get one task list by tasklist_id (title, etag). Use after list_task_lists. Not for individual tasks — use get_task / list_tasks."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("task_list_id", mcp.Required(), mcp.Description("The ID of the task list to retrieve.")),
 	)
@@ -313,7 +313,7 @@ func handleGetTaskList(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerCreateTaskList(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("create_task_list",
-		mcp.WithDescription("Create a new task list."),
+		mcp.WithDescription("Create a new Google Tasks list. Use for 'make a list called…'. Returns tasklist_id for create_task / list_tasks."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("title", mcp.Required(), mcp.Description("The title of the new task list.")),
 	)
@@ -355,7 +355,7 @@ func handleCreateTaskList(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerUpdateTaskList(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("update_task_list",
-		mcp.WithDescription("Update an existing task list."),
+		mcp.WithDescription("Rename or update a task list. Required tasklist_id from list_task_lists. Not for tasks — use update_task."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("task_list_id", mcp.Required(), mcp.Description("The ID of the task list to update.")),
 		mcp.WithString("title", mcp.Required(), mcp.Description("The new title for the task list.")),
@@ -402,7 +402,7 @@ func handleUpdateTaskList(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerDeleteTaskList(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("delete_task_list",
-		mcp.WithDescription("Delete a task list. Note: This will also delete all tasks in the list."),
+		mcp.WithDescription("Delete a task list and ALL its tasks. Required tasklist_id. Destructive — confirm when unclear. Not for single tasks — use delete_task."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("task_list_id", mcp.Required(), mcp.Description("The ID of the task list to delete.")),
 	)
@@ -441,7 +441,7 @@ func handleDeleteTaskList(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerListTasks(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("list_tasks",
-		mcp.WithDescription("List all tasks in a specific task list."),
+		mcp.WithDescription("List tasks in a tasklist_id (title, due, completed, task_id). Use for 'what's on my to-do'. Get tasklist_id from list_task_lists first. Not for list names — use list_task_lists."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("task_list_id", mcp.Required(), mcp.Description("The ID of the task list to retrieve tasks from.")),
 		mcp.WithNumber("max_results", mcp.Description("Maximum number of tasks to return (default: 20, max: 10000).")),
@@ -581,7 +581,7 @@ func handleListTasks(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerGetTask(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_task",
-		mcp.WithDescription("Get details of a specific task."),
+		mcp.WithDescription("Get one task by tasklist_id + task_id. Use before update_task / delete_task / move_task. IDs from list_tasks."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("task_list_id", mcp.Required(), mcp.Description("The ID of the task list containing the task.")),
 		mcp.WithString("task_id", mcp.Required(), mcp.Description("The ID of the task to retrieve.")),
@@ -656,7 +656,7 @@ func handleGetTask(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerCreateTask(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("create_task",
-		mcp.WithDescription("Create a new task in a task list."),
+		mcp.WithDescription("Add a new task to tasklist_id. Use for 'remind me to…', new to-do item. Required tasklist_id. Not for edits — use update_task."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("task_list_id", mcp.Required(), mcp.Description("The ID of the task list to create the task in.")),
 		mcp.WithString("title", mcp.Required(), mcp.Description("The title of the task.")),
@@ -739,7 +739,7 @@ func handleCreateTask(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerUpdateTask(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("update_task",
-		mcp.WithDescription("Update an existing task."),
+		mcp.WithDescription("Update an existing task (title, notes, due date, completed). Required tasklist_id + task_id from list_tasks. Not for new tasks — use create_task."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("task_list_id", mcp.Required(), mcp.Description("The ID of the task list containing the task.")),
 		mcp.WithString("task_id", mcp.Required(), mcp.Description("The ID of the task to update.")),
@@ -832,7 +832,7 @@ func handleUpdateTask(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerDeleteTask(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("delete_task",
-		mcp.WithDescription("Delete a task from a task list."),
+		mcp.WithDescription("Delete one task. Required tasklist_id + task_id. Destructive — confirm when unclear."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("task_list_id", mcp.Required(), mcp.Description("The ID of the task list containing the task.")),
 		mcp.WithString("task_id", mcp.Required(), mcp.Description("The ID of the task to delete.")),
@@ -876,7 +876,7 @@ func handleDeleteTask(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerMoveTask(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("move_task",
-		mcp.WithDescription("Move a task to a different position or parent within the same list, or to a different list."),
+		mcp.WithDescription("Reorder a task or move it to another tasklist_id / parent task. Required tasklist_id + task_id. Use after list_tasks when reorganizing."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("task_list_id", mcp.Required(), mcp.Description("The ID of the current task list containing the task.")),
 		mcp.WithString("task_id", mcp.Required(), mcp.Description("The ID of the task to move.")),
@@ -963,7 +963,7 @@ func handleMoveTask(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerClearCompletedTasks(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("clear_completed_tasks",
-		mcp.WithDescription("Clear all completed tasks from a task list. The tasks will be marked as hidden."),
+		mcp.WithDescription("Clear/hide all completed tasks in a tasklist_id. Required tasklist_id. Confirm when unclear — removes completed items from the active view."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("task_list_id", mcp.Required(), mcp.Description("The ID of the task list to clear completed tasks from.")),
 	)

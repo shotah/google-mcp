@@ -116,7 +116,7 @@ func executeSearch(ctx context.Context, email, q string, num, start int, safe st
 
 func registerSearchCustom(s *mcpserver.MCPServer) {
 	tool := mcp.NewTool("search_custom",
-		mcp.WithDescription("Performs a search using Google Custom Search JSON API."),
+		mcp.WithDescription("Web search via Google Programmable Search (Custom Search JSON API). Returns titles, snippets, links. Use for general web lookup. Not Drive/Gmail — use workspace tools. Site-limited: search_custom_siterestrict."),
 		mcp.WithString("user_google_email",
 			mcp.Required(),
 			mcp.Description("The user's Google email address."),
@@ -194,7 +194,7 @@ func handleSearchCustom(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 
 func registerGetSearchEngineInfo(s *mcpserver.MCPServer) {
 	tool := mcp.NewTool("get_search_engine_info",
-		mcp.WithDescription("Retrieves metadata about a Programmable Search Engine."),
+		mcp.WithDescription("Metadata about the configured Programmable Search Engine (cx). Use to verify search setup. Not for running a query — use search_custom."),
 		mcp.WithString("user_google_email",
 			mcp.Required(),
 			mcp.Description("The user's Google email address."),
@@ -328,7 +328,7 @@ func valueOrDefault(value, fallback string) string {
 
 func registerSearchCustomSiterestrict(s *mcpserver.MCPServer) {
 	tool := mcp.NewTool("search_custom_siterestrict",
-		mcp.WithDescription("Performs a search restricted to specific sites using Google Custom Search."),
+		mcp.WithDescription("Web search limited to specific site(s) via Programmable Search. Use for 'search company.com for…'. Broader web: search_custom."),
 		mcp.WithString("user_google_email",
 			mcp.Required(),
 			mcp.Description("The user's Google email address."),

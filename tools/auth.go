@@ -25,15 +25,7 @@ func RegisterAuthTools(s *mcpserver.MCPServer) {
 	s.AddTool(
 		mcp.NewTool("start_google_auth",
 			mcp.WithDescription(
-				"Manually initiate Google OAuth authentication flow. "+
-					"NOTE: This is a legacy OAuth 2.0 tool and is disabled when OAuth 2.1 is enabled. "+
-					"The authentication system automatically handles credential checks and prompts for "+
-					"authentication when needed. Only use this tool if: "+
-					"1. You need to re-authenticate with different credentials. "+
-					"2. You want to proactively authenticate before using other tools. "+
-					"3. The automatic authentication flow failed and you need to retry. "+
-					"In most cases, simply try calling the Google Workspace tool you need - it will "+
-					"automatically handle authentication if required.",
+				"Start legacy Google OAuth (disabled when MCP_ENABLE_OAUTH21=true). Returns auth URL/instructions. Prefer calling any Workspace tool first — auth usually runs automatically. Use to re-auth, switch account, or retry after auth failure. Requires service_name (e.g. Gmail, Google Calendar).",
 			),
 			mcp.WithString("service_name",
 				mcp.Required(),

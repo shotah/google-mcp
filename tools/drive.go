@@ -132,7 +132,7 @@ func formatDriveFileList(files []*drive.File, header string) string {
 
 func registerSearchDriveFiles(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("search_drive_files",
-		mcp.WithDescription("Searches for files and folders within a user's Google Drive, including shared drives."),
+		mcp.WithDescription("Search Drive by query (name, mimeType, fullText). Returns file ids + names. Use for 'find my file called…'. Prefer list_drive_items to browse a known folder."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("query", mcp.Required(), mcp.Description("The search query string. Supports Google Drive search operators.")),
 		mcp.WithNumber("page_size", mcp.Description("The maximum number of files to return. Defaults to 10.")),
@@ -188,7 +188,7 @@ func handleSearchDriveFiles(getClient httpClientFunc) mcpserver.ToolHandlerFunc 
 
 func registerGetDriveFileContent(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_drive_file_content",
-		mcp.WithDescription("Retrieves the content of a specific Google Drive file by ID, supporting files in shared drives.\n\n• Native Google Docs, Sheets, Slides → exported as text / CSV.\n• Any other file → downloaded; tries UTF-8 decode, else notes binary."),
+		mcp.WithDescription("Read file content by file_id (Docs→text, Sheets→CSV, Slides→text; other files UTF-8 or binary note). Use for 'what's in this file'. Not for download links — use get_drive_file_download_url. For editing Docs use get_doc_content."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("Drive file ID.")),
 	)
@@ -251,7 +251,7 @@ func handleGetDriveFileContent(getClient httpClientFunc) mcpserver.ToolHandlerFu
 
 func registerGetDriveFileDownloadURL(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_drive_file_download_url",
-		mcp.WithDescription("Gets a download URL for a Google Drive file. The file is prepared and made available via HTTP URL.\n\nFor Google native files (Docs, Sheets, Slides), exports to a useful format:\n• Google Docs → PDF (default) or DOCX if export_format='docx'\n• Google Sheets → XLSX (default), PDF if export_format='pdf', or CSV if export_format='csv'\n• Google Slides → PDF (default) or PPTX if export_format='pptx'\n\nFor other files, downloads the original file format."),
+		mcp.WithDescription("Get HTTP download/export URL for file_id (Docs/Sheets/Slides export formats via export_format). Use when the user needs a file link. Prefer get_drive_file_content to read text in chat."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("The Google Drive file ID to get a download URL for.")),
 		mcp.WithString("export_format", mcp.Description("Optional export format for Google native files. Options: 'pdf', 'docx', 'xlsx', 'csv', 'pptx'.")),
@@ -320,7 +320,7 @@ func handleGetDriveFileDownloadURL(getClient httpClientFunc) mcpserver.ToolHandl
 
 func registerListDriveItems(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("list_drive_items",
-		mcp.WithDescription("Lists files and folders, supporting shared drives.\nIf `drive_id` is specified, lists items within that shared drive. `folder_id` is then relative to that drive.\nIf `drive_id` is not specified, lists items from user's \"My Drive\" and accessible shared drives."),
+		mcp.WithDescription("Browse folder contents (optional folder_id; drive_id for shared drives). Use for 'what's in this folder'. Not for name search — use search_drive_files."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("folder_id", mcp.Description("The ID of the Google Drive folder. Defaults to 'root'.")),
 		mcp.WithNumber("page_size", mcp.Description("The maximum number of items to return. Defaults to 100.")),
@@ -374,7 +374,7 @@ func handleListDriveItems(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerGetDriveFilePermissions(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_drive_file_permissions",
-		mcp.WithDescription("Gets detailed metadata about a Google Drive file including sharing permissions."),
+		mcp.WithDescription("File metadata + sharing permissions for file_id. Use before share_drive_file or update/remove permission. Not for file body — use get_drive_file_content."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("The ID of the file to check permissions for.")),
 	)
@@ -479,7 +479,7 @@ func handleGetDriveFilePermissions(getClient httpClientFunc) mcpserver.ToolHandl
 
 func registerCheckDriveFilePublicAccess(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("check_drive_file_public_access",
-		mcp.WithDescription("Searches for a file by name and checks if it has public link sharing enabled."),
+		mcp.WithDescription("Find a Drive file by name and report if link sharing is public. Use for 'is this doc public'. Prefer search_drive_files + get_drive_file_permissions for full control."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_name", mcp.Required(), mcp.Description("The name of the file to check.")),
 	)
@@ -567,7 +567,7 @@ func handleCheckDriveFilePublicAccess(getClient httpClientFunc) mcpserver.ToolHa
 
 func registerGetDriveShareableLink(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_drive_shareable_link",
-		mcp.WithDescription("Gets the shareable link for a Google Drive file or folder."),
+		mcp.WithDescription("Get the shareable/view link for file_id or folder. Use after search_drive_files when user wants the URL. Not for changing permissions — use share_drive_file."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("The ID of the file or folder to get the shareable link for. Required.")),
 	)
@@ -635,7 +635,7 @@ func handleGetDriveShareableLink(getClient httpClientFunc) mcpserver.ToolHandler
 
 func registerCreateDriveFile(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("create_drive_file",
-		mcp.WithDescription("Creates a new file in Google Drive, supporting creation within shared drives.\nAccepts either direct content or a fileUrl to fetch the content from."),
+		mcp.WithDescription("Upload or create a Drive file (inline content or fileUrl). Use for 'save this to Drive'. For Markdown/DOCX→Google Doc use import_to_google_doc."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_name", mcp.Required(), mcp.Description("The name for the new file.")),
 		mcp.WithString("content", mcp.Description("If provided, the content to write to the file.")),
@@ -729,7 +729,7 @@ const googleDocsMIMEType = "application/vnd.google-apps.document"
 
 func registerImportToGoogleDoc(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("import_to_google_doc",
-		mcp.WithDescription("Imports a file (Markdown, DOCX, TXT, HTML, RTF, ODT) into Google Docs format with automatic conversion.\n\nGoogle Drive automatically converts the source file to native Google Docs format, preserving formatting like headings, lists, bold, italic, etc."),
+		mcp.WithDescription("Import MD/DOCX/TXT/HTML/RTF/ODT as a native Google Doc. Use for 'convert upload to Google Doc'. Returns document_id — then get_doc_content / Docs tools. Not plain Drive upload — use create_drive_file."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_name", mcp.Required(), mcp.Description("The name for the new Google Doc (extension will be ignored).")),
 		mcp.WithString("content", mcp.Description("Text content for text-based formats (MD, TXT, HTML).")),
@@ -846,7 +846,7 @@ func handleImportToGoogleDoc(getClient httpClientFunc) mcpserver.ToolHandlerFunc
 
 func registerUpdateDriveFile(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("update_drive_file",
-		mcp.WithDescription("Updates metadata and properties of a Google Drive file."),
+		mcp.WithDescription("Update Drive file metadata (name, description, parents) by file_id. Not for Doc/Sheet/Slide body edits — use Docs/Sheets/Slides tools."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("The ID of the file to update. Required.")),
 		mcp.WithString("name", mcp.Description("New name for the file.")),
@@ -997,7 +997,7 @@ func handleUpdateDriveFile(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerCopyDriveFile(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("copy_drive_file",
-		mcp.WithDescription("Creates a copy of an existing Google Drive file.\n\nThe copy maintains all formatting and content from the original file."),
+		mcp.WithDescription("Duplicate a file by file_id. Returns new file id. Use for 'make a copy of…'. Not for in-place edits — use update_drive_file or app-specific tools."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("The ID of the file to copy. Required.")),
 		mcp.WithString("new_name", mcp.Description("New name for the copied file. If not provided, uses \"Copy of [original name]\".")),
@@ -1078,7 +1078,7 @@ func handleCopyDriveFile(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerShareDriveFile(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("share_drive_file",
-		mcp.WithDescription("Shares a Google Drive file or folder with a user, group, domain, or anyone with the link.\n\nWhen sharing a folder, all files inside inherit the permission."),
+		mcp.WithDescription("Share file_id/folder with one recipient (email, role, optional link). Folder children inherit access. Confirm sensitive shares. Prefer batch_share_drive_file for many people."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("The ID of the file or folder to share. Required.")),
 		mcp.WithString("share_with", mcp.Description("Email address (for user/group), domain name (for domain), or omit for 'anyone'.")),
@@ -1230,7 +1230,7 @@ func setDriveFileDiscovery(perm *drive.Permission, value any) {
 
 func registerBatchShareDriveFile(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("batch_share_drive_file",
-		mcp.WithDescription("Shares a Google Drive file or folder with multiple users or groups in a single operation.\n\nEach recipient can have a different role and optional expiration time.\nRecipients are processed sequentially."),
+		mcp.WithDescription("Share file_id with multiple recipients (roles/expiry per person). Use for bulk sharing. Confirm when unclear. Prefer share_drive_file for one recipient."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("The ID of the file or folder to share. Required.")),
 		mcp.WithArray("recipients", mcp.Required(), mcp.Description("List of recipient objects. Each should have: email (str), role (str, optional, default 'reader'), share_type (str, optional, default 'user'), expiration_time (str, optional). For domain shares, use 'domain' field instead of 'email'."), mcp.Items(map[string]any{"type": "object"})),
@@ -1382,7 +1382,7 @@ func handleBatchShareDriveFile(getClient httpClientFunc) mcpserver.ToolHandlerFu
 
 func registerUpdateDrivePermission(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("update_drive_permission",
-		mcp.WithDescription("Updates an existing permission on a Google Drive file or folder."),
+		mcp.WithDescription("Change an existing permission on file_id. Required permission_id from get_drive_file_permissions. Not for new shares — use share_drive_file."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("The ID of the file or folder. Required.")),
 		mcp.WithString("permission_id", mcp.Required(), mcp.Description("The ID of the permission to update (from get_drive_file_permissions). Required.")),
@@ -1472,7 +1472,7 @@ func handleUpdateDrivePermission(getClient httpClientFunc) mcpserver.ToolHandler
 
 func registerRemoveDrivePermission(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("remove_drive_permission",
-		mcp.WithDescription("Removes a permission from a Google Drive file or folder, revoking access."),
+		mcp.WithDescription("Revoke access: remove permission_id on file_id. Destructive — confirm when unclear. List permissions with get_drive_file_permissions first."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("The ID of the file or folder. Required.")),
 		mcp.WithString("permission_id", mcp.Required(), mcp.Description("The ID of the permission to remove (from get_drive_file_permissions). Required.")),
@@ -1530,7 +1530,7 @@ func handleRemoveDrivePermission(getClient httpClientFunc) mcpserver.ToolHandler
 
 func registerTransferDriveOwnership(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("transfer_drive_ownership",
-		mcp.WithDescription("Transfers ownership of a Google Drive file or folder to another user.\n\nThis is an irreversible operation. The current owner will become an editor.\nOnly works within the same Google Workspace domain or for personal accounts."),
+		mcp.WithDescription("Transfer file/folder ownership by file_id (irreversible; you become editor). Confirm always. Same-domain/personal rules apply. Not for sharing only — use share_drive_file."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("The ID of the file or folder to transfer. Required.")),
 		mcp.WithString("new_owner_email", mcp.Required(), mcp.Description("Email address of the new owner. Required.")),

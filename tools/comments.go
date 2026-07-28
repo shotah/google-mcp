@@ -19,7 +19,7 @@ func RegisterCommentTools(s *mcpserver.MCPServer, getClient httpClientFunc, appN
 	// read_{appName}_comments
 	RegisterTool(s, mcp.NewTool(
 		fmt.Sprintf("read_%s_comments", appName),
-		mcp.WithDescription(fmt.Sprintf("Read all comments from a Google %s.", appTitle)),
+		mcp.WithDescription(fmt.Sprintf("List comments/threads on a Google %s. Required %s. Use for 'show review comments'. Not for file body — use Docs/Sheets/Slides read tools.", appTitle, fileIDParam)),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(fmt.Sprintf("The ID of the Google %s.", appTitle))),
 	), makeReadCommentsHandler(getClient, appName, fileIDParam))
@@ -27,7 +27,7 @@ func RegisterCommentTools(s *mcpserver.MCPServer, getClient httpClientFunc, appN
 	// create_{appName}_comment
 	RegisterTool(s, mcp.NewTool(
 		fmt.Sprintf("create_%s_comment", appName),
-		mcp.WithDescription(fmt.Sprintf("Create a new comment on a Google %s.", appTitle)),
+		mcp.WithDescription(fmt.Sprintf("Add a new comment on a Google %s. Required %s + comment_content. Not a reply — use reply_to_%s_comment.", appTitle, fileIDParam, appName)),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(fmt.Sprintf("The ID of the Google %s.", appTitle))),
 		mcp.WithString("comment_content", mcp.Required(), mcp.Description("The content of the comment.")),
@@ -36,7 +36,7 @@ func RegisterCommentTools(s *mcpserver.MCPServer, getClient httpClientFunc, appN
 	// reply_to_{appName}_comment
 	RegisterTool(s, mcp.NewTool(
 		fmt.Sprintf("reply_to_%s_comment", appName),
-		mcp.WithDescription(fmt.Sprintf("Reply to a specific comment on a Google %s.", appTitle)),
+		mcp.WithDescription(fmt.Sprintf("Reply to a comment on a Google %s. Required %s, comment_id, reply_content. comment_id from read_%s_comments.", appTitle, fileIDParam, appName)),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(fmt.Sprintf("The ID of the Google %s.", appTitle))),
 		mcp.WithString("comment_id", mcp.Required(), mcp.Description("The ID of the comment to reply to.")),
@@ -46,7 +46,7 @@ func RegisterCommentTools(s *mcpserver.MCPServer, getClient httpClientFunc, appN
 	// resolve_{appName}_comment
 	RegisterTool(s, mcp.NewTool(
 		fmt.Sprintf("resolve_%s_comment", appName),
-		mcp.WithDescription(fmt.Sprintf("Resolve a comment on a Google %s.", appTitle)),
+		mcp.WithDescription(fmt.Sprintf("Resolve (close) a comment on a Google %s. Required %s + comment_id. Confirm when unclear.", appTitle, fileIDParam)),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(fmt.Sprintf("The ID of the Google %s.", appTitle))),
 		mcp.WithString("comment_id", mcp.Required(), mcp.Description("The ID of the comment to resolve.")),

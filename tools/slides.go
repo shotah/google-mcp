@@ -55,7 +55,7 @@ func newSlidesService(ctx context.Context, getClient httpClientFunc, email strin
 
 func registerCreatePresentation(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("create_presentation",
-		mcp.WithDescription("Create a new Google Slides presentation."),
+		mcp.WithDescription("Create a new Google Slides deck (title). Returns presentation_id. Use for 'new slideshow'. Add slides/content with batch_update_presentation."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("title", mcp.Description("The title for the new presentation. Defaults to \"Untitled Presentation\".")),
 	)
@@ -99,7 +99,7 @@ func handleCreatePresentation(getClient httpClientFunc) mcpserver.ToolHandlerFun
 
 func registerGetPresentation(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_presentation",
-		mcp.WithDescription("Get details about a Google Slides presentation."),
+		mcp.WithDescription("READ presentation metadata and slide/page ids for presentation_id. Use before get_page or batch_update_presentation. Not slide image — use get_page_thumbnail."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("presentation_id", mcp.Required(), mcp.Description("The ID of the presentation to retrieve.")),
 	)
@@ -243,7 +243,7 @@ func extractSlideText(slide *slides.Page) string {
 
 func registerBatchUpdatePresentation(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("batch_update_presentation",
-		mcp.WithDescription("Apply batch updates to a Google Slides presentation."),
+		mcp.WithDescription("Apply Slides API batch updates on presentation_id (create slides, insert text/shapes, etc.). Use for 'edit my deck'. Prefer get_presentation for ids first."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("presentation_id", mcp.Required(), mcp.Description("The ID of the presentation to update.")),
 		mcp.WithArray("requests", mcp.Required(), mcp.Description("List of update requests to apply."), mcp.Items(map[string]any{"type": "object"})),
@@ -324,7 +324,7 @@ func handleBatchUpdatePresentation(getClient httpClientFunc) mcpserver.ToolHandl
 
 func registerGetPage(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_page",
-		mcp.WithDescription("Get details about a specific page (slide) in a presentation."),
+		mcp.WithDescription("Get one slide/page details (elements, layout) by presentation_id + page_id. page_id from get_presentation. Not thumbnail — use get_page_thumbnail."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("presentation_id", mcp.Required(), mcp.Description("The ID of the presentation.")),
 		mcp.WithString("page_object_id", mcp.Required(), mcp.Description("The object ID of the page/slide to retrieve.")),
@@ -426,7 +426,7 @@ func valueOrUnknown(value string) string {
 
 func registerGetPageThumbnail(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_page_thumbnail",
-		mcp.WithDescription("Generate a thumbnail URL for a specific page (slide) in a presentation."),
+		mcp.WithDescription("Thumbnail image URL for presentation_id + page_id. Use when user needs a slide preview. Not full slide JSON — use get_page."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("presentation_id", mcp.Required(), mcp.Description("The ID of the presentation.")),
 		mcp.WithString("page_object_id", mcp.Required(), mcp.Description("The object ID of the page/slide.")),

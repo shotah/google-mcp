@@ -66,7 +66,7 @@ func newDocsService(ctx context.Context, getClient httpClientFunc, email string)
 
 func registerSearchDocs(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("search_docs",
-		mcp.WithDescription("Searches for Google Docs by name using Drive API (mimeType filter)."),
+		mcp.WithDescription("Search Google Docs by title via Drive (returns document_id). Use for 'find my doc called…'. In-folder browse: list_docs_in_folder. Not content — use get_doc_content."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("query", mcp.Required(), mcp.Description("Search query string for document names.")),
 		mcp.WithNumber("page_size", mcp.Description("Number of results to return. Defaults to 10.")),
@@ -131,7 +131,7 @@ func handleSearchDocs(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerGetDocContent(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_doc_content",
-		mcp.WithDescription("Retrieves content of a Google Doc or a Drive file (like .docx) identified by document_id.\n- Native Google Docs: Fetches content via Docs API.\n- Office files (.docx, etc.) stored in Drive: Downloads via Drive API and extracts text."),
+		mcp.WithDescription("READ plain text of a Google Doc or Office file by document_id. Use for 'what does this doc say'. Not for editing — use modify_doc_text. Prefer search_docs to find document_id."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("document_id", mcp.Required(), mcp.Description("The ID of the Google Doc or Drive file to fetch.")),
 	)
@@ -316,7 +316,7 @@ func extractTextFromElementsWithDepth(elements []*docs.StructuralElement, tabNam
 
 func registerListDocsInFolder(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("list_docs_in_folder",
-		mcp.WithDescription("Lists Google Docs within a specific Drive folder."),
+		mcp.WithDescription("List Google Docs in a Drive folder_id (document ids + names). Use for 'docs in this folder'. Not title search — use search_docs."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("folder_id", mcp.Description("The ID of the folder to list docs from. Defaults to 'root'.")),
 		mcp.WithNumber("page_size", mcp.Description("Maximum number of documents to return. Defaults to 100.")),
@@ -377,7 +377,7 @@ func handleListDocsInFolder(getClient httpClientFunc) mcpserver.ToolHandlerFunc 
 
 func registerCreateDoc(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("create_doc",
-		mcp.WithDescription("Creates a new Google Doc and optionally inserts initial content."),
+		mcp.WithDescription("Create a new Google Doc (title, optional initial text). Returns document_id. Use for 'new document'. Edit with modify_doc_text / batch_update_doc."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("title", mcp.Required(), mcp.Description("The title for the new Google Doc.")),
 		mcp.WithString("content", mcp.Description("Initial text content to insert into the document.")),
@@ -437,7 +437,7 @@ func handleCreateDoc(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerInspectDocStructure(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("inspect_doc_structure",
-		mcp.WithDescription("Essential tool for finding safe insertion points and understanding document structure.\n\nUSE THIS FOR:\n- Finding the correct index for table insertion\n- Understanding document layout before making changes\n- Locating existing tables and their positions\n- Getting document statistics and complexity info\n\nCRITICAL FOR TABLE OPERATIONS:\nALWAYS call this BEFORE creating tables to get a safe insertion index.\n\nWORKFLOW:\nStep 1: Call this function\nStep 2: Note the \"total_length\" value\nStep 3: Use an index < total_length for table insertion\nStep 4: Create your table"),
+		mcp.WithDescription("Doc layout stats: total_length, indices, tables (safe insert index). Use BEFORE create_table_with_data or insert_doc_elements — pick index < total_length. Not full text — use get_doc_content."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("document_id", mcp.Required(), mcp.Description("ID of the document to inspect.")),
 		mcp.WithBoolean("detailed", mcp.Description("Whether to return detailed structure information. Defaults to false.")),
@@ -684,7 +684,7 @@ func extractCellText(cell *docs.TableCell) string {
 
 func registerDebugTableStructure(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("debug_table_structure",
-		mcp.WithDescription("Essential debugging tool for understanding and troubleshooting table structures.\nShows exact table dimensions, cell positions, coordinates, and current content.\n\nUSE THIS WHEN:\n- Table population put data in wrong cells\n- You get \"table not found\" errors\n- Need to understand existing table structure\n- Planning to use populate_existing_table"),
+		mcp.WithDescription("Debug table grid: rows/cols, cell indices, content. Use when populate failed or 'table not found'. Before populate_existing flows. Not general layout — use inspect_doc_structure."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("document_id", mcp.Required(), mcp.Description("ID of the document containing the table.")),
 		mcp.WithNumber("table_index", mcp.Description("Which table to debug (0 = first table, 1 = second table, etc.). Defaults to 0.")),
@@ -789,7 +789,7 @@ func handleDebugTableStructure(getClient httpClientFunc) mcpserver.ToolHandlerFu
 
 func registerModifyDocText(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("modify_doc_text",
-		mcp.WithDescription("Modifies text in a Google Doc - can insert/replace text and/or apply formatting in a single operation."),
+		mcp.WithDescription("Insert/replace text and/or apply inline formatting at indices in document_id. Use for edits in one place. Global replace: find_and_replace_doc. Complex multi-step: batch_update_doc."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("document_id", mcp.Required(), mcp.Description("ID of the document to update.")),
 		mcp.WithNumber("start_index", mcp.Required(), mcp.Description("Start position for operation (0-based).")),
@@ -1085,7 +1085,7 @@ func hexToDec(s string) int {
 
 func registerFindAndReplaceDoc(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("find_and_replace_doc",
-		mcp.WithDescription("Finds and replaces text throughout a Google Doc."),
+		mcp.WithDescription("Find/replace all occurrences of text in document_id. Use for 'change every X to Y'. Not for single indexed edit — use modify_doc_text."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("document_id", mcp.Required(), mcp.Description("ID of the document to update.")),
 		mcp.WithString("find_text", mcp.Required(), mcp.Description("Text to search for.")),
@@ -1153,7 +1153,7 @@ func handleFindAndReplaceDoc(getClient httpClientFunc) mcpserver.ToolHandlerFunc
 
 func registerInsertDocElements(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("insert_doc_elements",
-		mcp.WithDescription("Inserts structural elements like tables, lists, or page breaks into a Google Doc."),
+		mcp.WithDescription("Insert tables, lists, or page breaks at index in document_id. Use inspect_doc_structure for index. Tables with data: create_table_with_data."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("document_id", mcp.Required(), mcp.Description("ID of the document to update.")),
 		mcp.WithString("element_type", mcp.Required(), mcp.Description("Type of element to insert ('table', 'list', 'page_break').")),
@@ -1268,7 +1268,7 @@ func handleInsertDocElements(getClient httpClientFunc) mcpserver.ToolHandlerFunc
 
 func registerInsertDocImage(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("insert_doc_image",
-		mcp.WithDescription("Inserts an image into a Google Doc from Drive or a URL."),
+		mcp.WithDescription("Insert image in document_id from Drive file_id or URL at index. Use for 'add logo/picture'. Not text — use modify_doc_text."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("document_id", mcp.Required(), mcp.Description("ID of the document to update.")),
 		mcp.WithString("image_source", mcp.Required(), mcp.Description("Drive file ID or public image URL.")),
@@ -1380,7 +1380,7 @@ func handleInsertDocImage(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerUpdateDocHeadersFooters(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("update_doc_headers_footers",
-		mcp.WithDescription("Updates headers or footers in a Google Doc."),
+		mcp.WithDescription("Update header/footer content in document_id. Use for 'fix the header'. Not body text — use modify_doc_text."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("document_id", mcp.Required(), mcp.Description("ID of the document to update.")),
 		mcp.WithString("section_type", mcp.Required(), mcp.Description("Type of section to update ('header' or 'footer').")),
@@ -1505,7 +1505,7 @@ func handleUpdateDocHeadersFooters(getClient httpClientFunc) mcpserver.ToolHandl
 
 func registerBatchUpdateDoc(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("batch_update_doc",
-		mcp.WithDescription("Executes multiple document operations in a single atomic batch update.\n\nSupported operations:\n- insert_text: {type, index, text}\n- delete_text: {type, start_index, end_index}\n- replace_text: {type, start_index, end_index, text}\n- format_text: {type, start_index, end_index, bold, italic, underline, font_size, font_family, text_color, background_color}\n- insert_table: {type, index, rows, columns}\n- insert_page_break: {type, index}\n- find_replace: {type, find_text, replace_text, match_case}"),
+		mcp.WithDescription("Run many doc edits atomically on document_id (insert/delete/replace text, format, tables, find_replace). Use for multi-step edits. Simple one-off: modify_doc_text."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("document_id", mcp.Required(), mcp.Description("ID of the document to update.")),
 		mcp.WithArray("operations", mcp.Required(), mcp.Description("List of operation dictionaries."), mcp.Items(map[string]any{"type": "object"})),
@@ -1782,7 +1782,7 @@ func buildBatchOperationRequest(op map[string]any, opType string, opNum int) ([]
 
 func registerCreateTableWithData(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("create_table_with_data",
-		mcp.WithDescription("Creates a table and populates it with data in one reliable operation.\n\nCRITICAL: YOU MUST CALL inspect_doc_structure FIRST TO GET THE INDEX!\n\nMANDATORY WORKFLOW:\nStep 1: ALWAYS call inspect_doc_structure first\nStep 2: Use the 'total_length' value as your index\nStep 3: Format data as 2D list: [[\"col1\", \"col2\"], [\"row1col1\", \"row1col2\"]]\nStep 4: Call this function with the correct index and data\n\nDATA FORMAT: Must be 2D list of strings. All rows MUST have same number of columns."),
+		mcp.WithDescription("Create table + fill cells in document_id at index (2D string array). MUST call inspect_doc_structure first; use index < total_length. Prefer over insert_doc_elements + manual fill."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("document_id", mcp.Required(), mcp.Description("ID of the document to update.")),
 		mcp.WithArray("table_data", mcp.Required(), mcp.Description("2D list of strings - EXACT format: [[\"col1\", \"col2\"], [\"row1col1\", \"row1col2\"]]"), mcp.Items(map[string]any{"type": "array", "items": map[string]any{"type": "string"}})),
@@ -1972,7 +1972,7 @@ func parseTableData(raw any) ([][]string, error) {
 
 func registerUpdateParagraphStyle(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("update_paragraph_style",
-		mcp.WithDescription("Apply paragraph-level formatting and/or heading styles to a range in a Google Doc.\n\nCan apply named heading styles (H1-H6) for semantic document structure,\nand/or customize paragraph properties like alignment, spacing, and indentation.\nBoth can be applied in a single operation."),
+		mcp.WithDescription("Apply heading styles (H1–H6) and/or paragraph alignment/spacing on a range in document_id. Use for 'make this a heading'. Inline bold: modify_doc_text."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("document_id", mcp.Required(), mcp.Description("Document ID to modify.")),
 		mcp.WithNumber("start_index", mcp.Required(), mcp.Description("Start position (1-based).")),
@@ -2153,7 +2153,7 @@ func handleUpdateParagraphStyle(getClient httpClientFunc) mcpserver.ToolHandlerF
 
 func registerExportDocToPDF(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("export_doc_to_pdf",
-		mcp.WithDescription("Exports a Google Doc to PDF format and saves it to Google Drive."),
+		mcp.WithDescription("Export document_id to PDF saved in Drive. Use for 'save doc as PDF'. Not for editing body — use modify_doc_text. Export URL only — get_drive_file_download_url."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("document_id", mcp.Required(), mcp.Description("ID of the Google Doc to export.")),
 		mcp.WithString("pdf_filename", mcp.Description("Name for the PDF file. If not provided, uses original name + \"_PDF\".")),

@@ -46,7 +46,7 @@ func newFormsService(ctx context.Context, getClient httpClientFunc, email string
 
 func registerCreateForm(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("create_form",
-		mcp.WithDescription("Create a new Google Form with the specified title and optional description."),
+		mcp.WithDescription("Create a new Google Form (title, optional description). Returns form_id and URLs. Use for 'make a survey/form'. Edit questions with batch_update_form."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("title", mcp.Required(), mcp.Description("The title of the form.")),
 		mcp.WithString("description", mcp.Description("The description of the form.")),
@@ -116,7 +116,7 @@ func handleCreateForm(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerGetForm(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_form",
-		mcp.WithDescription("Get a Google Form's details including title, description, questions, and URLs."),
+		mcp.WithDescription("READ form structure: title, questions, settings, responder URLs. Required form_id. Use before batch_update_form or listing responses. Not for answers — use list_form_responses."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("form_id", mcp.Required(), mcp.Description("The ID of the form to retrieve.")),
 	)
@@ -204,7 +204,7 @@ func handleGetForm(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerSetPublishSettings(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("set_publish_settings",
-		mcp.WithDescription("Updates the publish settings of a Google Form."),
+		mcp.WithDescription("Change publish/accept-response settings for form_id. Use for 'open/close the form'. Not for editing questions — use batch_update_form."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("form_id", mcp.Required(), mcp.Description("The ID of the form to update publish settings for.")),
 		mcp.WithBoolean("publish_as_template", mcp.Description("Whether to publish as a template. Defaults to false.")),
@@ -272,7 +272,7 @@ func handleSetPublishSettings(getClient httpClientFunc) mcpserver.ToolHandlerFun
 
 func registerGetFormResponse(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_form_response",
-		mcp.WithDescription("Get a single response from a Google Form by response ID."),
+		mcp.WithDescription("Get one form submission by form_id + response_id. Use after list_form_responses when you need full answers for one response."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("form_id", mcp.Required(), mcp.Description("The ID of the form.")),
 		mcp.WithString("response_id", mcp.Required(), mcp.Description("The ID of the response to retrieve.")),
@@ -352,7 +352,7 @@ func handleGetFormResponse(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerListFormResponses(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("list_form_responses",
-		mcp.WithDescription("List responses for a Google Form with pagination support."),
+		mcp.WithDescription("List form responses for form_id (paginated). Use for 'show survey results', export answers. Prefer get_form_response for one submission."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("form_id", mcp.Required(), mcp.Description("The ID of the form.")),
 		mcp.WithNumber("page_size", mcp.Description("Maximum number of responses to return. Defaults to 10.")),
@@ -433,7 +433,7 @@ func handleListFormResponses(getClient httpClientFunc) mcpserver.ToolHandlerFunc
 
 func registerBatchUpdateForm(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("batch_update_form",
-		mcp.WithDescription("Apply batch updates to a Google Form. Supports adding, updating, and deleting form items, as well as updating form metadata and settings."),
+		mcp.WithDescription("Add/update/delete form items and metadata on form_id (questions, sections, settings). Use for 'add a question', restructure form. Prefer get_form first. Not for reading responses — use list_form_responses."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("form_id", mcp.Required(), mcp.Description("The ID of the form to update.")),
 		mcp.WithArray("requests", mcp.Required(), mcp.Description("List of update requests to apply. Supported types: createItem, updateItem, deleteItem, moveItem, updateFormInfo, updateSettings."), mcp.Items(map[string]any{"type": "object"})),
