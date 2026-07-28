@@ -8,6 +8,21 @@ import (
 	calendar "google.golang.org/api/calendar/v3"
 )
 
+func TestNormalizeGetEventsIDs(t *testing.T) {
+	cal, eid := normalizeGetEventsIDs("primary", "primary")
+	if cal != "primary" || eid != "" {
+		t.Fatalf("got calendar=%q event=%q", cal, eid)
+	}
+	cal, eid = normalizeGetEventsIDs("primary", "2026-07-28T00:00:00-07:00")
+	if eid != "" || cal != "primary" {
+		t.Fatalf("datetime event_id should clear: calendar=%q event=%q", cal, eid)
+	}
+	cal, eid = normalizeGetEventsIDs("primary", "realEventId123")
+	if eid != "realEventId123" || cal != "primary" {
+		t.Fatalf("real id should keep: calendar=%q event=%q", cal, eid)
+	}
+}
+
 // --- correctTimeFormatForAPI ---
 
 func TestCalendarCorrectTimeFormatForAPI(t *testing.T) {

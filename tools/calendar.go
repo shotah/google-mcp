@@ -118,10 +118,10 @@ func handleListCalendars(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerGetEvents(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_events",
-		mcp.WithDescription("Retrieves events from a specified Google Calendar. Can retrieve a single event by ID or multiple events within a time range. You can also search for events by keyword by supplying the optional \"query\" param."),
+		mcp.WithDescription("List Google Calendar events in a time range (preferred), or fetch one event by id. For day queries (today/tomorrow): pass user_google_email, calendar_id=\"primary\", and both time_min and time_max in RFC3339 — do NOT set event_id. Only set event_id when you already have a real Google event id from a previous result. Never put \"primary\", a date, or a time range in event_id."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("calendar_id", mcp.Description("The ID of the calendar to query. Use 'primary' for the user's primary calendar. Defaults to 'primary'. Calendar IDs can be obtained using `list_calendars`.")),
-		mcp.WithString("event_id", mcp.Description("The ID of a specific event to retrieve. If provided, retrieves only this event and ignores time filtering parameters.")),
+		mcp.WithString("event_id", mcp.Description("Optional. Opaque Google Calendar event id from a previous result. If set, fetches that one event and ignores time_min/time_max. Do not use for day listings — never put 'primary', a date, or a time range here.")),
 		mcp.WithString("time_min", mcp.Description("The start of the time range (inclusive) in RFC3339 format (e.g., '2024-05-12T10:00:00Z' or '2024-05-12'). If omitted, defaults to the current time. Ignored if event_id is provided.")),
 		mcp.WithString("time_max", mcp.Description("The end of the time range (exclusive) in RFC3339 format. If omitted, events starting from `time_min` onwards are considered (up to `max_results`). Ignored if event_id is provided.")),
 		mcp.WithNumber("max_results", mcp.Description("The maximum number of events to return. Defaults to 25. Ignored if event_id is provided.")),
@@ -147,6 +147,7 @@ func handleGetEvents(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		query := request.GetString("query", "")
 		detailed := getBool(request, "detailed", false)
 		includeAttachments := getBool(request, "include_attachments", false)
+		calendarID, eventID = normalizeGetEventsIDs(calendarID, eventID)
 
 		svc, err := newCalendarService(ctx, getClient, email)
 		if err != nil {
@@ -615,6 +616,62 @@ func handleModifyEvent(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 		return mcp.NewToolResultText(msg), nil
 	}
+}
+
+// normalizeGetEventsIDs clears model mistakes where calendar_id or a date/range
+// is stuffed into event_id (which would force Events.Get and 404).
+func normalizeGetEventsIDs(calendarID, eventID string) (string, string) {
+	eventID = strings.TrimSpace(eventID)
+	if eventID == "" || !bogusCalendarEventID(eventID) {
+		if calendarID == "" {
+			calendarID = "primary"
+		}
+		return calendarID, eventID
+	}
+	if strings.EqualFold(eventID, "primary") && strings.TrimSpace(calendarID) == "" {
+		calendarID = "primary"
+	}
+	if strings.TrimSpace(calendarID) == "" {
+		calendarID = "primary"
+	}
+	return calendarID, ""
+}
+
+func bogusCalendarEventID(s string) bool {
+	lower := strings.ToLower(strings.TrimSpace(s))
+	if lower == "" {
+		return false
+	}
+	switch lower {
+	case "primary", "secondary":
+		return true
+	}
+	if strings.Contains(lower, " to ") || strings.ContainsAny(s, " \t\n") {
+		return true
+	}
+	if len(lower) == 10 && lower[4] == '-' && lower[7] == '-' {
+		ok := true
+		for i, r := range lower {
+			if i == 4 || i == 7 {
+				continue
+			}
+			if r < '0' || r > '9' {
+				ok = false
+				break
+			}
+		}
+		if ok {
+			return true
+		}
+	}
+	if strings.Contains(lower, "t") && strings.ContainsAny(lower, ":-z+") {
+		for _, r := range lower {
+			if r >= '0' && r <= '9' {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func getCalendarEvents(svc *calendar.Service, calendarID, eventID, timeMin, timeMax string, maxResults int, query string) ([]*calendar.Event, error) {
