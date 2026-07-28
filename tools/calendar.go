@@ -118,12 +118,12 @@ func handleListCalendars(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerGetEvents(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("get_events",
-		mcp.WithDescription("List Google Calendar events in a time range (preferred), or fetch one event by id. For day queries (today/tomorrow): pass user_google_email, calendar_id=\"primary\", and both time_min and time_max in RFC3339 — do NOT set event_id. Only set event_id when you already have a real Google event id from a previous result. Never put \"primary\", a date, or a time range in event_id."),
+		mcp.WithDescription("List Google Calendar events in a bounded time range (preferred), or fetch one event by id. For today/tomorrow: pass user_google_email, calendar_id=\"primary\", and BOTH time_min and time_max in RFC3339 from the host clock — do NOT set event_id. Omitting time_max used to return months of birthdays; the server now defaults time_max to 24h after time_min, but you should still pass an explicit day bound. Only set event_id when you already have a real Google event id from a previous result. Never put \"primary\", a date, or a time range in event_id."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("calendar_id", mcp.Description("The ID of the calendar to query. Use 'primary' for the user's primary calendar. Defaults to 'primary'. Calendar IDs can be obtained using `list_calendars`.")),
 		mcp.WithString("event_id", mcp.Description("Optional. Opaque Google Calendar event id from a previous result. If set, fetches that one event and ignores time_min/time_max. Do not use for day listings — never put 'primary', a date, or a time range here.")),
-		mcp.WithString("time_min", mcp.Description("The start of the time range (inclusive) in RFC3339 format (e.g., '2024-05-12T10:00:00Z' or '2024-05-12'). If omitted, defaults to the current time. Ignored if event_id is provided.")),
-		mcp.WithString("time_max", mcp.Description("The end of the time range (exclusive) in RFC3339 format. If omitted, events starting from `time_min` onwards are considered (up to `max_results`). Ignored if event_id is provided.")),
+		mcp.WithString("time_min", mcp.Description("The start of the time range (inclusive) in RFC3339 format (e.g., '2026-07-28T00:00:00-07:00' or '2026-07-28'). If omitted, defaults to the current time. Ignored if event_id is provided.")),
+		mcp.WithString("time_max", mcp.Description("The end of the time range (exclusive) in RFC3339. Required for clean day queries. If omitted, defaults to 24 hours after time_min (avoids unbounded future birthday spam). Ignored if event_id is provided.")),
 		mcp.WithNumber("max_results", mcp.Description("The maximum number of events to return. Defaults to 25. Ignored if event_id is provided.")),
 		mcp.WithString("query", mcp.Description("A keyword to search for within event fields (summary, description, location). Ignored if event_id is provided.")),
 		mcp.WithBoolean("detailed", mcp.Description("Whether to return detailed event information including description, location, attendees, and attendee details (response status, organizer, optional flags). Defaults to False.")),
@@ -154,7 +154,7 @@ func handleGetEvents(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		items, err := getCalendarEvents(svc, calendarID, eventID, timeMin, timeMax, maxResults, query)
+		items, defaultedMax, err := getCalendarEventsWindow(svc, calendarID, eventID, timeMin, timeMax, maxResults, query)
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
@@ -178,6 +178,10 @@ func handleGetEvents(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 			fmt.Fprintf(&b, "Successfully retrieved event from calendar '%s' for %s:", calendarID, email)
 		} else {
 			fmt.Fprintf(&b, "Successfully retrieved %d events from calendar '%s' for %s:", len(items), calendarID, email)
+			if defaultedMax {
+				_, effMax, _ := resolveListWindow(timeMin, timeMax)
+				fmt.Fprintf(&b, "\n(Note: time_max was omitted — used a 24h window ending %s. Pass an explicit time_max for the day next time.)", effMax)
+			}
 		}
 
 		for _, item := range items {
@@ -440,15 +444,15 @@ func handleCreateEvent(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerModifyEvent(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := mcp.NewTool("modify_event",
-		mcp.WithDescription("Modifies an existing event."),
+		mcp.WithDescription("WRITE/UPDATE an existing Google Calendar event (location, title, times, description, …). Required: user_google_email + event_id from get_events (the ID: field). After web search finds an address for a named event, you MUST call this tool with location=… before replying — do not stop after get_events or search."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
-		mcp.WithString("event_id", mcp.Required(), mcp.Description("The ID of the event to modify.")),
+		mcp.WithString("event_id", mcp.Required(), mcp.Description("Opaque Google event id from get_events (ID: …). Required for updates.")),
 		mcp.WithString("calendar_id", mcp.Description("Calendar ID (default: 'primary').")),
 		mcp.WithString("summary", mcp.Description("New event title.")),
 		mcp.WithString("start_time", mcp.Description("New start time (RFC3339, e.g., \"2023-10-27T10:00:00-07:00\" or \"2023-10-27\" for all-day).")),
 		mcp.WithString("end_time", mcp.Description("New end time (RFC3339, e.g., \"2023-10-27T11:00:00-07:00\" or \"2023-10-28\" for all-day).")),
 		mcp.WithString("description", mcp.Description("New event description.")),
-		mcp.WithString("location", mcp.Description("New event location.")),
+		mcp.WithString("location", mcp.Description("New event location / street address. Use this to write a searched address onto the event.")),
 		mcp.WithArray("attendees", mcp.Description("Attendees as email strings. Supports: [\"email@example.com\"]. New attendees default to responseStatus=\"needsAction\"."), mcp.Items(map[string]any{"type": "string"})),
 		mcp.WithString("timezone", mcp.Description("New timezone (e.g., \"America/New_York\").")),
 		mcp.WithBoolean("add_google_meet", mcp.Description("Whether to add or remove Google Meet video conference. If True, adds Google Meet; if False, removes it; if not provided, leaves unchanged.")),
@@ -674,30 +678,61 @@ func bogusCalendarEventID(s string) bool {
 	return false
 }
 
+// resolveListWindow returns API time_min / time_max for Events.List.
+// When time_max is omitted, defaults to 24h after time_min so small models
+// that forget the upper bound do not pull months of future birthdays.
+func resolveListWindow(timeMin, timeMax string) (effectiveMin, effectiveMax string, defaultedMax bool) {
+	effectiveMin = correctTimeFormatForAPI(timeMin)
+	if effectiveMin == "" {
+		effectiveMin = time.Now().UTC().Format(time.RFC3339)
+	}
+	effectiveMax = correctTimeFormatForAPI(timeMax)
+	if effectiveMax == "" {
+		effectiveMax = defaultTimeMaxAfter(effectiveMin)
+		defaultedMax = true
+	}
+	return effectiveMin, effectiveMax, defaultedMax
+}
+
+func defaultTimeMaxAfter(timeMinRFC3339 string) string {
+	parsed, err := time.Parse(time.RFC3339, timeMinRFC3339)
+	if err != nil {
+		parsed, err = time.Parse("2006-01-02T15:04:05Z07:00", timeMinRFC3339)
+	}
+	if err != nil {
+		return time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339)
+	}
+	return parsed.Add(24 * time.Hour).Format(time.RFC3339)
+}
+
 func getCalendarEvents(svc *calendar.Service, calendarID, eventID, timeMin, timeMax string, maxResults int, query string) ([]*calendar.Event, error) {
+	items, _, err := getCalendarEventsWindow(svc, calendarID, eventID, timeMin, timeMax, maxResults, query)
+	return items, err
+}
+
+func getCalendarEventsWindow(svc *calendar.Service, calendarID, eventID, timeMin, timeMax string, maxResults int, query string) ([]*calendar.Event, bool, error) {
 	if eventID != "" {
 		event, err := svc.Events.Get(calendarID, eventID).Do()
 		if err != nil {
-			return nil, fmt.Errorf("getting event %s: %w", eventID, err)
+			return nil, false, fmt.Errorf("getting event %s: %w", eventID, err)
 		}
-		return []*calendar.Event{event}, nil
+		return []*calendar.Event{event}, false, nil
 	}
-	effectiveTimeMin := correctTimeFormatForAPI(timeMin)
-	if effectiveTimeMin == "" {
-		effectiveTimeMin = time.Now().UTC().Format(time.RFC3339)
-	}
-	call := svc.Events.List(calendarID).TimeMin(effectiveTimeMin).MaxResults(int64(maxResults)).SingleEvents(true).OrderBy("startTime")
-	if effectiveTimeMax := correctTimeFormatForAPI(timeMax); effectiveTimeMax != "" {
-		call = call.TimeMax(effectiveTimeMax)
-	}
+	effectiveTimeMin, effectiveTimeMax, defaultedMax := resolveListWindow(timeMin, timeMax)
+	call := svc.Events.List(calendarID).
+		TimeMin(effectiveTimeMin).
+		TimeMax(effectiveTimeMax).
+		MaxResults(int64(maxResults)).
+		SingleEvents(true).
+		OrderBy("startTime")
 	if query != "" {
 		call = call.Q(query)
 	}
 	resp, err := call.Do()
 	if err != nil {
-		return nil, fmt.Errorf("listing events: %w", err)
+		return nil, defaultedMax, fmt.Errorf("listing events: %w", err)
 	}
-	return resp.Items, nil
+	return resp.Items, defaultedMax, nil
 }
 
 func eventDateTime(value, timezone string) *calendar.EventDateTime {

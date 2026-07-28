@@ -8,6 +8,33 @@ import (
 	calendar "google.golang.org/api/calendar/v3"
 )
 
+func TestResolveListWindowDefaultsMax(t *testing.T) {
+	min, max, defaulted := resolveListWindow("2026-07-28T00:00:00-07:00", "")
+	if !defaulted {
+		t.Fatal("expected defaultedMax")
+	}
+	if min != "2026-07-28T00:00:00-07:00" {
+		t.Fatalf("min=%q", min)
+	}
+	if max != "2026-07-29T00:00:00-07:00" {
+		t.Fatalf("max=%q want +24h", max)
+	}
+	_, max2, defaulted2 := resolveListWindow("2026-07-28T00:00:00-07:00", "2026-07-28T23:59:59-07:00")
+	if defaulted2 {
+		t.Fatal("explicit time_max should not default")
+	}
+	if max2 != "2026-07-28T23:59:59-07:00" {
+		t.Fatalf("max=%q", max2)
+	}
+}
+
+func TestDefaultTimeMaxAfter(t *testing.T) {
+	got := defaultTimeMaxAfter("2026-07-28T15:00:00Z")
+	if got != "2026-07-29T15:00:00Z" {
+		t.Fatalf("got %q", got)
+	}
+}
+
 func TestNormalizeGetEventsIDs(t *testing.T) {
 	cal, eid := normalizeGetEventsIDs("primary", "primary")
 	if cal != "primary" || eid != "" {
