@@ -705,11 +705,6 @@ func defaultTimeMaxAfter(timeMinRFC3339 string) string {
 	return parsed.Add(24 * time.Hour).Format(time.RFC3339)
 }
 
-func getCalendarEvents(svc *calendar.Service, calendarID, eventID, timeMin, timeMax string, maxResults int, query string) ([]*calendar.Event, error) {
-	items, _, err := getCalendarEventsWindow(svc, calendarID, eventID, timeMin, timeMax, maxResults, query)
-	return items, err
-}
-
 func getCalendarEventsWindow(svc *calendar.Service, calendarID, eventID, timeMin, timeMax string, maxResults int, query string) ([]*calendar.Event, bool, error) {
 	if eventID != "" {
 		event, err := svc.Events.Get(calendarID, eventID).Do()

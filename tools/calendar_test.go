@@ -9,22 +9,22 @@ import (
 )
 
 func TestResolveListWindowDefaultsMax(t *testing.T) {
-	min, max, defaulted := resolveListWindow("2026-07-28T00:00:00-07:00", "")
+	gotMin, gotMax, defaulted := resolveListWindow("2026-07-28T00:00:00-07:00", "")
 	if !defaulted {
 		t.Fatal("expected defaultedMax")
 	}
-	if min != "2026-07-28T00:00:00-07:00" {
-		t.Fatalf("min=%q", min)
+	if gotMin != "2026-07-28T00:00:00-07:00" {
+		t.Fatalf("min=%q", gotMin)
 	}
-	if max != "2026-07-29T00:00:00-07:00" {
-		t.Fatalf("max=%q want +24h", max)
+	if gotMax != "2026-07-29T00:00:00-07:00" {
+		t.Fatalf("max=%q want +24h", gotMax)
 	}
-	_, max2, defaulted2 := resolveListWindow("2026-07-28T00:00:00-07:00", "2026-07-28T23:59:59-07:00")
+	_, gotMax2, defaulted2 := resolveListWindow("2026-07-28T00:00:00-07:00", "2026-07-28T23:59:59-07:00")
 	if defaulted2 {
 		t.Fatal("explicit time_max should not default")
 	}
-	if max2 != "2026-07-28T23:59:59-07:00" {
-		t.Fatalf("max=%q", max2)
+	if gotMax2 != "2026-07-28T23:59:59-07:00" {
+		t.Fatalf("max=%q", gotMax2)
 	}
 }
 
