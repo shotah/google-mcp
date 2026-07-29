@@ -157,3 +157,107 @@ func TestParseFlagsNoFlagsAllToolsLoaded(t *testing.T) {
 		t.Errorf("tools = %v, want empty (all tools)", cfg.Tools)
 	}
 }
+
+func TestParseFlagsPresetLean(t *testing.T) {
+	cfg, err := parseFlags([]string{"--preset", "lean"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	wantTools := []string{"gmail", "calendar"}
+	if len(cfg.Tools) != len(wantTools) {
+		t.Fatalf("tools = %v, want %v", cfg.Tools, wantTools)
+	}
+	for i, tool := range wantTools {
+		if cfg.Tools[i] != tool {
+			t.Errorf("tools[%d] = %q, want %q", i, cfg.Tools[i], tool)
+		}
+	}
+	if cfg.ToolTier != "core" {
+		t.Errorf("tool-tier = %q, want %q", cfg.ToolTier, "core")
+	}
+	if cfg.Capability != "edit" {
+		t.Errorf("capability = %q, want %q", cfg.Capability, "edit")
+	}
+}
+
+func TestParseFlagsPresetLeanOverrides(t *testing.T) {
+	cfg, err := parseFlags([]string{
+		"--preset", "lean",
+		"--tools", "gmail calendar tasks",
+		"--tool-tier", "extended",
+		"--capability", "read",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	wantTools := []string{"gmail", "calendar", "tasks"}
+	if len(cfg.Tools) != len(wantTools) {
+		t.Fatalf("tools = %v, want %v", cfg.Tools, wantTools)
+	}
+	for i, tool := range wantTools {
+		if cfg.Tools[i] != tool {
+			t.Errorf("tools[%d] = %q, want %q", i, cfg.Tools[i], tool)
+		}
+	}
+	if cfg.ToolTier != "extended" {
+		t.Errorf("tool-tier = %q, want %q", cfg.ToolTier, "extended")
+	}
+	if cfg.Capability != "read" {
+		t.Errorf("capability = %q, want %q", cfg.Capability, "read")
+	}
+}
+
+func TestParseFlagsPresetEveryday(t *testing.T) {
+	cfg, err := parseFlags([]string{"--preset", "everyday"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	wantTools := []string{"gmail", "calendar", "docs", "sheets", "tasks"}
+	if len(cfg.Tools) != len(wantTools) {
+		t.Fatalf("tools = %v, want %v", cfg.Tools, wantTools)
+	}
+	for i, tool := range wantTools {
+		if cfg.Tools[i] != tool {
+			t.Errorf("tools[%d] = %q, want %q", i, cfg.Tools[i], tool)
+		}
+	}
+	if cfg.ToolTier != "core" || cfg.Capability != "edit" {
+		t.Errorf("tier/capability = %q/%q, want core/edit", cfg.ToolTier, cfg.Capability)
+	}
+}
+
+func TestParseFlagsInvalidPreset(t *testing.T) {
+	_, err := parseFlags([]string{"--preset", "bogus"})
+	if err == nil {
+		t.Fatal("expected error for invalid preset")
+	}
+}
+
+func TestParseAuthArgs(t *testing.T) {
+	t.Setenv("USER_GOOGLE_EMAIL", "")
+
+	got, err := parseAuthArgs([]string{"--email", "a@example.com"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "a@example.com" {
+		t.Errorf("got %q, want a@example.com", got)
+	}
+
+	got, err = parseAuthArgs([]string{"b@example.com"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "b@example.com" {
+		t.Errorf("got %q, want b@example.com", got)
+	}
+
+	t.Setenv("USER_GOOGLE_EMAIL", "env@example.com")
+	got, err = parseAuthArgs(nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "env@example.com" {
+		t.Errorf("got %q, want env@example.com", got)
+	}
+}

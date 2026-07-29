@@ -35,18 +35,15 @@ func TestDefaultTimeMaxAfter(t *testing.T) {
 	}
 }
 
-func TestNormalizeGetEventsIDs(t *testing.T) {
-	cal, eid := normalizeGetEventsIDs("primary", "primary")
-	if cal != "primary" || eid != "" {
-		t.Fatalf("got calendar=%q event=%q", cal, eid)
+func TestBogusCalendarEventID(t *testing.T) {
+	if !bogusCalendarEventID("primary") {
+		t.Fatal("primary should be bogus")
 	}
-	cal, eid = normalizeGetEventsIDs("primary", "2026-07-28T00:00:00-07:00")
-	if eid != "" || cal != "primary" {
-		t.Fatalf("datetime event_id should clear: calendar=%q event=%q", cal, eid)
+	if !bogusCalendarEventID("2026-07-28T00:00:00-07:00") {
+		t.Fatal("datetime should be bogus")
 	}
-	cal, eid = normalizeGetEventsIDs("primary", "realEventId123")
-	if eid != "realEventId123" || cal != "primary" {
-		t.Fatalf("real id should keep: calendar=%q event=%q", cal, eid)
+	if bogusCalendarEventID("realEventId123") {
+		t.Fatal("real id should not be bogus")
 	}
 }
 

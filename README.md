@@ -16,7 +16,7 @@ Google Workspace MCP server (Go)
   Gmail, Drive, Calendar, Docs, Sheets, and more — one small binary, no Python runtime.
 </p>
 
-**137 tools · 12 services · single binary · OAuth that just works**
+**138 tools · 12 services · single binary · OAuth that just works**
 
 Drop it into your MCP config and ask your agent to search mail, clean up calendar duplicates, draft Docs, or update Sheets — with a permission surface you control (`read` / `edit` / `complete`).
 
@@ -34,8 +34,8 @@ Built for **local, single-user** AI tool use. Need multi-user OAuth 2.1 or an HT
 
 - **Zero runtime** — download a binary (or `go install`) and run; no venv, no `uv`, no dependency churn
 - **Service-first tool names** — `google__calendar_list_events`, not ambiguous `get_events` (agent clarity over Python string parity)
-- **Agent-friendly filters** — trim context with `--tools` / `--tool-tier`, and constrain writes with `--capability`
-- **Local-first auth** — Desktop OAuth, tokens stored under `~/.google_workspace_mcp/credentials/`
+- **Agent-friendly filters** — `--preset everyday` (personal assistant) or `lean` (tiny models), or explicit `--tools` / `--tool-tier` / `--capability`
+- **Local-first auth** — `google-mcp auth` once; tokens under `~/.google_workspace_mcp/credentials/`; MCP refreshes silently
 - **Works where you already work** — Claude Code, Cursor, and any stdio MCP client
 
 ## Quick start
@@ -102,16 +102,16 @@ export USER_GOOGLE_EMAIL="you@gmail.com"  # optional but recommended
 
 ### 4. MCP client config
 
-**Recommended** for local agents (small tool surface + everyday edit permissions):
-
 Use server id **`google`** so hosts expose tools as `google__calendar_list_events` (short server + service-prefixed tool).
+
+**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks (~20 core tools). Track stats in a spreadsheet, draft notes, schedule, todos — without loading Drive:
 
 ```json
 {
   "mcpServers": {
     "google": {
       "command": "google-mcp",
-      "args": ["--tools", "gmail drive calendar", "--tool-tier", "core", "--capability", "edit"],
+      "args": ["--preset", "everyday"],
       "env": {
         "GOOGLE_OAUTH_CLIENT_ID": "your-client-id.apps.googleusercontent.com",
         "GOOGLE_OAUTH_CLIENT_SECRET": "your-client-secret",
@@ -122,51 +122,92 @@ Use server id **`google`** so hosts expose tools as `google__calendar_list_event
 }
 ```
 
-If those env vars are already exported in the shell that launches your MCP client, you can omit the `env` block:
+**Tiny local models** (e.g. Qwen 35B) — starve harder with `--preset lean` (~10 tools: Gmail + Calendar only).
+
+If OAuth env vars are already exported in the shell that launches your MCP client, omit the `env` block:
 
 ```json
 {
   "mcpServers": {
     "google": {
       "command": "google-mcp",
-      "args": ["--tools", "gmail drive calendar", "--tool-tier", "core", "--capability", "edit"]
+      "args": ["--preset", "everyday"]
     }
   }
 }
 ```
 
-### 5. Authenticate once
+#### Which services do I need?
 
-Ask your assistant to call `auth_start` with your email. A browser opens, you approve, tokens land in `~/.google_workspace_mcp/credentials/`, and later runs refresh automatically.
+| Goal | Enable | Skip |
+| --- | --- | --- |
+| Track stats / log rows in a Sheet | `sheets` (in `everyday`) | **Drive** — create with `sheets_create_spreadsheet`, then `sheets_modify_values` / `sheets_read_values` using `spreadsheet_id` |
+| Draft / edit a Doc | `docs` (in `everyday`) | **Drive** — same idea: `docs_create` / `docs_get_content` / `docs_modify_text` |
+| Find a sheet by name | `sheets` + `--tool-tier extended` (`sheets_list_spreadsheets`) | Still not Drive tools — list is a Sheets tool that uses Drive API under the hood |
+| Search arbitrary files, share links, upload binaries, folders | `drive` | — |
+| Tasks / todos | `tasks` (in `everyday`) | Use `task_list_id="@default"` for the account default list |
 
-> `auth_start` is registered with the `gmail` service. If your `--tools` list omits gmail, add it temporarily for first-time auth.
+OAuth already requests Drive + Docs + Sheets scopes on `google-mcp auth`. Enabling `--tools sheets` does **not** require Drive *tools* — only enable Drive when the agent needs file search/share/upload.
+
+Add services only when the persona needs them, e.g. `--preset everyday --tools "gmail calendar docs sheets tasks drive"`.
+
+### 5. Authenticate once (human / CLI — not an agent tool)
+
+Run OAuth yourself before starting the MCP server:
+
+```bash
+export GOOGLE_OAUTH_CLIENT_ID="....apps.googleusercontent.com"
+export GOOGLE_OAUTH_CLIENT_SECRET="...."
+export USER_GOOGLE_EMAIL="you@gmail.com"   # optional
+
+google-mcp auth
+# alias: google-mcp login
+# optional: google-mcp auth --email you@gmail.com
+```
+
+A browser opens; after you approve, tokens land in `~/.google_workspace_mcp/credentials/{email}.json`. You can copy that file onto an agent host. The MCP server refreshes access tokens automatically on API calls — small models should not be asked to call `auth_start`.
+
+> `auth_start` remains only as a rare re-auth escape hatch (gmail / complete tier). Lean surfaces omit it.
 
 ## Configuration
 
 ### CLI flags
 
-| Flag | Description | Default |
+| Flag / command | Description | Default |
 | --- | --- | --- |
-| `--tools` | Services to enable (e.g. `gmail drive calendar`) | all |
+| `auth` / `login` | First-time OAuth (human CLI); writes credential JSON | — |
+| `--preset` | Named surface (see below) | unset |
+| `--tools` | Services to enable (e.g. `gmail calendar docs sheets`) | all |
 | `--tool-tier` | Depth: `core`, `extended`, or `complete` | `complete` |
 | `--capability` | Permissions: `read`, `edit`, or `complete` | `complete` |
 | `--read-only` | Shorthand for `--capability read` | `false` |
 
-### Tool tiers (how many tools)
+`--preset` fills tools / tier / capability only when those flags are omitted. Explicit flags always win.
 
-| Tier | Description | Count |
+| Preset | Services | Tier / capability | ~Tools | Use when |
+| --- | --- | --- | --- | --- |
+| `everyday` | gmail, calendar, docs, sheets, tasks | core / edit | ~20 | Personal assistant (recommended) |
+| `lean` | gmail, calendar | core / edit | ~10 | Tiny local models; mail + calendar only |
+
+### Tool tiers (how deep each service goes)
+
+`--tool-tier` is **not** “which Google products” — that’s `--tools` / `--preset`. Tier controls **depth inside** each enabled service (see `tools/tiers.go`):
+
+| Tier | Meaning | Count (all services) |
 | --- | --- | --- |
-| `core` | Everyday read/write per service | 45 |
-| `extended` | Core + management tools | 91 |
-| `complete` | Everything | 137 |
+| `core` | Everyday path an assistant actually needs | 46 |
+| `extended` | Discovery / management (list-by-name, filters, …) | 92 |
+| `complete` | Rare / power-user extras | 138 |
+
+Example: `--tools sheets --tool-tier core` → create/read/write cells. Need “find my sheet by name”? Use `extended` (`sheets_list_spreadsheets`) — still no Drive tools.
 
 ### Capabilities (what agents may do)
 
 | Capability | Description | Count |
 | --- | --- | --- |
-| `read` | Read-only (same as `--read-only`) | 59 |
-| `edit` | Everyday create/modify/delete; blocks high-impact ops | 131 |
-| `complete` | Full surface including ownership transfer & bulk deletes | 137 |
+| `read` | Read-only (same as `--read-only`) | 60 |
+| `edit` | Everyday create/modify/delete; blocks high-impact ops | 132 |
+| `complete` | Full surface including ownership transfer & bulk deletes | 138 |
 
 Withheld under `edit`: `drive_transfer_ownership`, `contacts_batch_delete`, `tasks_delete_tasklist`, `contacts_delete_group`, `appscript_delete_project`, `tasks_clear_completed`.
 
@@ -204,7 +245,7 @@ Every tool is `{service}_{verb}_{object}` (snake_case). The MCP server name is `
 | --- | --- | --- |
 | Best for | Local Claude Code / Cursor / stdio MCP | Hosted or multi-user deployments |
 | Install | Single binary | Python 3.10+ + deps |
-| Tools | 137 (service-first names) | 137 (legacy names) |
+| Tools | 138 (service-first names) | 137 (legacy names) |
 | Transport | stdio | stdio + streamable HTTP |
 | Auth | OAuth 2.0 (desktop) | OAuth 2.0 + OAuth 2.1 |
 | Multi-user | No | Yes (sessions, Valkey, etc.) |
@@ -214,7 +255,7 @@ Same credentials work in both. Tool **names** diverge on purpose for agent routi
 ## Tools
 
 <details>
-<summary><strong>Full tool reference (137 tools across 12 services)</strong></summary>
+<summary><strong>Full tool reference (138 tools across 12 services)</strong></summary>
 
 ### Gmail (15 tools)
 
@@ -240,7 +281,7 @@ Same credentials work in both. Tool **names** diverge on purpose for agent routi
 
 | Tool                | Tier     | Description                       |
 | ------------------- | -------- | --------------------------------- |
-| `auth_start` | complete | Trigger OAuth authentication flow |
+| `auth_start` | complete | Rare re-auth escape hatch (prefer `google-mcp auth`) |
 
 ### Google Drive (16 tools)
 
@@ -263,12 +304,13 @@ Same credentials work in both. Tool **names** diverge on purpose for agent routi
 | `drive_get_file_permissions`     | complete | List all permissions                 |
 | `drive_check_file_public_access` | complete | Check public sharing status          |
 
-### Google Calendar (6 tools)
+### Google Calendar (7 tools)
 
 | Tool             | Tier     | Description                |
 | ---------------- | -------- | -------------------------- |
 | `calendar_list_calendars` | core     | List user's calendars      |
-| `calendar_list_events`     | core     | Get events with time range |
+| `calendar_list_events`     | core     | List events in a time range |
+| `calendar_get_event`       | core     | Get one event by event_id  |
 | `calendar_create_event`   | core     | Create calendar event      |
 | `calendar_update_event`   | core     | Update event details       |
 | `calendar_delete_event`   | core     | Delete event               |

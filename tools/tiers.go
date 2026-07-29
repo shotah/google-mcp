@@ -61,6 +61,7 @@ var tierTools = map[string]map[string][]string{
 		"core": {
 			"calendar_list_calendars",
 			"calendar_list_events",
+			"calendar_get_event",
 			"calendar_create_event",
 			"calendar_update_event",
 			"calendar_delete_event", // everyday dedupe / cleanup — keep in core+edit
@@ -275,6 +276,7 @@ var readOnlyTools = map[string]bool{
 	// Calendar
 	"calendar_list_calendars": true,
 	"calendar_list_events":    true,
+	"calendar_get_event":      true,
 	"calendar_query_freebusy": true,
 	// Docs
 	"docs_search":                true,

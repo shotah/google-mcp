@@ -333,7 +333,7 @@ func TestDriveMockShareFile(t *testing.T) {
 			"role":              "admin",
 			"user_google_email": "test@example.com",
 		})
-		if !strings.Contains(text, "Invalid role") {
+		if !strings.Contains(strings.ToLower(text), "invalid role") {
 			t.Errorf("expected invalid role error, got:\n%s", text)
 		}
 	})

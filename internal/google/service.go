@@ -72,14 +72,15 @@ func (c *ClientCache) GetAuthenticatedClient(ctx context.Context, userEmail stri
 
 	cred, err := c.store.GetCredential(userEmail)
 	if err != nil {
-		return nil, fmt.Errorf("loading credentials for %s: %w", userEmail, err)
+		return nil, fmt.Errorf("loading credentials for %s: %w (run: google-mcp auth)", userEmail, err)
 	}
 	if cred == nil {
-		return nil, fmt.Errorf("no credentials found for %s", userEmail)
+		return nil, fmt.Errorf("no credentials found for %s; run: google-mcp auth", userEmail)
 	}
 
 	// oauth2.Config.Client returns an *http.Client whose Transport
-	// automatically refreshes the token when it expires.
+	// automatically refreshes expired access tokens using the refresh token.
+	// Agents should not call auth_start for routine use — CLI setup + this refresh is enough.
 	client := cred.Config.Client(ctx, cred.Token)
 
 	c.clients[userEmail] = &cachedClient{

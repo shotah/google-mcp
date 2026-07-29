@@ -122,6 +122,11 @@ func (s *LocalDirectoryCredentialStore) ListUsers() ([]string, error) {
 	return users, nil
 }
 
+// CredentialPath returns the on-disk path for the given email's credential file.
+func (s *LocalDirectoryCredentialStore) CredentialPath(email string) string {
+	return s.credentialPath(email)
+}
+
 func (s *LocalDirectoryCredentialStore) credentialPath(email string) string {
 	return filepath.Join(s.Dir, email+".json")
 }

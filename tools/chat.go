@@ -36,14 +36,30 @@ func newChatService(ctx context.Context, getClient httpClientFunc, email string)
 	return svc, nil
 }
 
+// normalizeChatSpaceID ensures space_id is a Chat resource name (spaces/…).
+// Bare ids like "AAAA" become "spaces/AAAA". Display names are left unchanged
+// so the API error path can teach chat_list_spaces.
+func normalizeChatSpaceID(spaceID string) string {
+	spaceID = strings.TrimSpace(spaceID)
+	if spaceID == "" {
+		return ""
+	}
+	if strings.HasPrefix(spaceID, "spaces/") {
+		return spaceID
+	}
+	// Already a nested resource (e.g. spaces/…/messages/…) — leave alone.
+	if strings.Contains(spaceID, "/") {
+		return spaceID
+	}
+	return "spaces/" + spaceID
+}
+
 // --- chat_list_spaces ---
 
 func registerListSpaces(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("chat_list_spaces",
-		mcp.WithDescription("List Google Chat spaces (space ids, DMs, rooms). Use for 'which chats do I have' before chat_list_messages or chat_send_message. Not for message search — use chat_search_messages."),
-		mcp.WithString("user_google_email", mcp.Description("User's Google email address")),
-		mcp.WithNumber("page_size", mcp.Description("Number of spaces to return per page. Defaults to 100.")),
-		mcp.WithString("space_type", mcp.Description("Type of spaces to filter: 'all', 'room', or 'dm'. Defaults to 'all'.")),
+	tool := newMCPTool("chat_list_spaces",
+		mcp.WithDescription("List Chat spaces (space_id like spaces/…, DMs, rooms). Use before chat_list_messages or chat_send_message. Message search → chat_search_messages."),
+		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
 	)
 	s.AddTool(tool, handleListSpaces(getClient))
 }
@@ -52,9 +68,10 @@ func handleListSpaces(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		email, err := resolveEmail(request)
 		if err != nil {
-			return mcp.NewToolResultError("user_google_email is required"), nil
+			return needArg("user_google_email", "chat_list_spaces()"), nil
 		}
 
+		// Optional paging/filter still accepted if a client sends them (not in lean schema).
 		pageSize := request.GetInt("page_size", 100)
 		spaceType := request.GetString("space_type", "all")
 
@@ -104,12 +121,10 @@ func handleListSpaces(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 // --- chat_list_messages ---
 
 func registerGetMessages(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("chat_list_messages",
-		mcp.WithDescription("Read messages in a space_id (paginated). Use for 'show recent chat in…'. space_id from chat_list_spaces. Not for sending — use chat_send_message."),
-		mcp.WithString("user_google_email", mcp.Description("User's Google email address")),
-		mcp.WithString("space_id", mcp.Required(), mcp.Description("The ID of the Chat space to retrieve messages from")),
-		mcp.WithNumber("page_size", mcp.Description("Number of messages to return per page. Defaults to 50.")),
-		mcp.WithString("order_by", mcp.Description("Sort order for messages. Defaults to 'createTime desc'.")),
+	tool := newMCPTool("chat_list_messages",
+		mcp.WithDescription("Read messages in space_id (paginated). Required: space_id from chat_list_spaces (spaces/…, not display name). Send → chat_send_message."),
+		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
+		mcp.WithString("space_id", mcp.Required(), mcp.Description("Chat space resource name from chat_list_spaces (spaces/…). Not a display name.")),
 	)
 	s.AddTool(tool, handleGetMessages(getClient))
 }
@@ -118,13 +133,15 @@ func handleGetMessages(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		email, err := resolveEmail(request)
 		if err != nil {
-			return mcp.NewToolResultError("user_google_email is required"), nil
+			return needArg("user_google_email", `chat_list_messages(space_id="spaces/…")`), nil
 		}
 		spaceID, err := request.RequireString("space_id")
-		if err != nil {
-			return mcp.NewToolResultError("space_id is required"), nil
+		if err != nil || strings.TrimSpace(spaceID) == "" {
+			return needArg("space_id", `chat_list_spaces() then chat_list_messages(space_id="spaces/…")`), nil
 		}
+		spaceID = normalizeChatSpaceID(spaceID)
 
+		// Optional paging/order still accepted if a client sends them (not in lean schema).
 		pageSize := request.GetInt("page_size", 50)
 		orderBy := request.GetString("order_by", "createTime desc")
 
@@ -136,7 +153,7 @@ func handleGetMessages(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		// Get space info first
 		spaceInfo, err := svc.Spaces.Get(spaceID).Do()
 		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("getting space info: %v", err)), nil
+			return toolHint(fmt.Sprintf("getting space info for %s: %v", spaceID, err), `chat_list_spaces() then chat_list_messages(space_id="spaces/…")`), nil
 		}
 		spaceName := spaceInfo.DisplayName
 		if spaceName == "" {
@@ -149,7 +166,7 @@ func handleGetMessages(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 			OrderBy(orderBy).
 			Do()
 		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("listing messages: %v", err)), nil
+			return toolHint(fmt.Sprintf("listing messages: %v", err), `chat_list_spaces() then chat_list_messages(space_id="spaces/…")`), nil
 		}
 
 		messages := resp.Messages
@@ -185,12 +202,11 @@ func handleGetMessages(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 // --- chat_send_message ---
 
 func registerSendMessage(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("chat_send_message",
-		mcp.WithDescription("POST a message to space_id. Confirm before sending unless user asked to send. Use chat_list_spaces for space_id. Not for reading history — use chat_list_messages."),
-		mcp.WithString("user_google_email", mcp.Description("User's Google email address")),
-		mcp.WithString("space_id", mcp.Required(), mcp.Description("The ID of the Chat space to send the message to")),
-		mcp.WithString("message_text", mcp.Required(), mcp.Description("The text content of the message to send")),
-		mcp.WithString("thread_key", mcp.Description("Optional thread key for threaded replies")),
+	tool := newMCPTool("chat_send_message",
+		mcp.WithDescription("Send a message to space_id. Confirm unless user asked to send. Required: space_id from chat_list_spaces (spaces/…). Read history → chat_list_messages."),
+		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
+		mcp.WithString("space_id", mcp.Required(), mcp.Description("Chat space resource name from chat_list_spaces (spaces/…). Not a display name.")),
+		mcp.WithString("message_text", mcp.Required(), mcp.Description("Message body text.")),
 	)
 	s.AddTool(tool, handleSendMessage(getClient))
 }
@@ -199,17 +215,20 @@ func handleSendMessage(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		email, err := resolveEmail(request)
 		if err != nil {
-			return mcp.NewToolResultError("user_google_email is required"), nil
+			return needArg("user_google_email", `chat_send_message(space_id="spaces/…", message_text=…)`), nil
 		}
 		spaceID, err := request.RequireString("space_id")
-		if err != nil {
-			return mcp.NewToolResultError("space_id is required"), nil
+		if err != nil || strings.TrimSpace(spaceID) == "" {
+			return needArg("space_id", `chat_list_spaces() then chat_send_message(space_id="spaces/…", message_text=…)`), nil
 		}
+		spaceID = normalizeChatSpaceID(spaceID)
+
 		messageText, err := request.RequireString("message_text")
-		if err != nil {
-			return mcp.NewToolResultError("message_text is required"), nil
+		if err != nil || strings.TrimSpace(messageText) == "" {
+			return needArg("message_text", `chat_send_message(space_id="spaces/…", message_text=…)`), nil
 		}
 
+		// Optional thread_key still accepted if a client sends it (not in lean schema).
 		threadKey := request.GetString("thread_key", "")
 
 		svc, err := newChatService(ctx, getClient, email)
@@ -228,7 +247,7 @@ func handleSendMessage(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 		message, err := call.Do()
 		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("sending message: %v", err)), nil
+			return toolHint(fmt.Sprintf("sending message: %v", err), `chat_list_spaces() then chat_send_message(space_id="spaces/…", message_text=…)`), nil
 		}
 
 		result := fmt.Sprintf("Message sent to space '%s' by %s. Message ID: %s, Time: %s",
@@ -241,12 +260,11 @@ func handleSendMessage(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 // --- chat_search_messages ---
 
 func registerSearchMessages(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("chat_search_messages",
-		mcp.WithDescription("Search Chat messages by text across spaces. Use for 'find that message about…'. Prefer chat_list_messages for full thread in one space."),
-		mcp.WithString("user_google_email", mcp.Description("User's Google email address")),
-		mcp.WithString("query", mcp.Required(), mcp.Description("Search query text to find in messages")),
-		mcp.WithString("space_id", mcp.Description("Optional space ID to limit search to a specific space; if not provided, searches all accessible spaces")),
-		mcp.WithNumber("page_size", mcp.Description("Number of messages to return per page. Defaults to 25.")),
+	tool := newMCPTool("chat_search_messages",
+		mcp.WithDescription("Search Chat messages by text. Optional space_id (spaces/… from chat_list_spaces). Full thread in one space → chat_list_messages."),
+		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
+		mcp.WithString("query", mcp.Required(), mcp.Description("Text to find in messages.")),
+		mcp.WithString("space_id", mcp.Description("Optional space resource name (spaces/…) to limit search.")),
 	)
 	s.AddTool(tool, handleSearchMessages(getClient))
 }
@@ -255,14 +273,19 @@ func handleSearchMessages(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		email, err := resolveEmail(request)
 		if err != nil {
-			return mcp.NewToolResultError("user_google_email is required"), nil
+			return needArg("user_google_email", `chat_search_messages(query="…")`), nil
 		}
 		query, err := request.RequireString("query")
-		if err != nil {
-			return mcp.NewToolResultError("query is required"), nil
+		if err != nil || strings.TrimSpace(query) == "" {
+			return needArg("query", `chat_search_messages(query="…")`), nil
 		}
+		query = strings.TrimSpace(query)
 
 		spaceID := request.GetString("space_id", "")
+		if strings.TrimSpace(spaceID) != "" {
+			spaceID = normalizeChatSpaceID(spaceID)
+		}
+		// Optional page_size still accepted if a client sends it (not in lean schema).
 		pageSize := request.GetInt("page_size", 25)
 
 		svc, err := newChatService(ctx, getClient, email)
@@ -278,7 +301,7 @@ func handleSearchMessages(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		if spaceID != "" {
 			resp, err := svc.Spaces.Messages.List(spaceID).PageSize(int64(pageSize)).Filter(filter).Do()
 			if err != nil {
-				return mcp.NewToolResultError(fmt.Sprintf("searching messages: %v", err)), nil
+				return toolHint(fmt.Sprintf("searching messages: %v", err), `chat_list_spaces() then chat_search_messages(query="…", space_id="spaces/…")`), nil
 			}
 			results = messagesWithSpace(resp.Messages, "")
 			searchContext = fmt.Sprintf("space '%s'", spaceID)

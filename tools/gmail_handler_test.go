@@ -54,8 +54,8 @@ func TestGmailHandlerGetMessagesContentBatchEmptyMessageIDs(t *testing.T) {
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
-	if !strings.Contains(strings.ToLower(text), "no message ids") {
-		t.Errorf("expected error mentioning empty message_ids, got %q", text)
+	if !strings.Contains(strings.ToLower(text), "message_ids") {
+		t.Errorf("expected error mentioning message_ids, got %q", text)
 	}
 }
 

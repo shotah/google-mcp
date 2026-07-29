@@ -32,7 +32,7 @@ func TestCommentsMockReadComments(t *testing.T) {
 				]
 			}`,
 		})
-		handler := makeReadCommentsHandler(testClientFunc(ts), "document", "document_id")
+		handler := makeReadCommentsHandler(testClientFunc(ts), "docs", "document", "document_id")
 		text := callHandlerOK(t, handler, map[string]any{
 			"document_id":       "doc001",
 			"user_google_email": "test@example.com",
@@ -55,7 +55,7 @@ func TestCommentsMockReadComments(t *testing.T) {
 		ts := driveFakeServer(t, map[string]any{
 			"/drive/v3/files/doc001/comments": `{"comments":[]}`,
 		})
-		handler := makeReadCommentsHandler(testClientFunc(ts), "document", "document_id")
+		handler := makeReadCommentsHandler(testClientFunc(ts), "docs", "document", "document_id")
 		text := callHandlerOK(t, handler, map[string]any{
 			"document_id":       "doc001",
 			"user_google_email": "test@example.com",
@@ -76,7 +76,7 @@ func TestCommentsMockCreateComment(t *testing.T) {
 			fmt.Fprint(w, `{"id":"comment001","content":"Please review this.","author":{"displayName":"Alice"},"createdTime":"2026-02-18T10:00:00Z"}`)
 		},
 	})
-	handler := makeCreateCommentHandler(testClientFunc(ts), "document", "document_id")
+	handler := makeCreateCommentHandler(testClientFunc(ts), "docs", "document_id")
 	text := callHandlerOK(t, handler, map[string]any{
 		"document_id":       "doc001",
 		"comment_content":   "Please review this.",
@@ -100,7 +100,7 @@ func TestCommentsMockReplyToComment(t *testing.T) {
 			fmt.Fprint(w, `{"id":"reply001","content":"I will update it.","author":{"displayName":"Bob"},"createdTime":"2026-02-18T10:05:00Z"}`)
 		},
 	})
-	handler := makeReplyToCommentHandler(testClientFunc(ts), "document", "document_id")
+	handler := makeReplyToCommentHandler(testClientFunc(ts), "docs", "document_id")
 	text := callHandlerOK(t, handler, map[string]any{
 		"document_id":       "doc001",
 		"comment_id":        "comment001",
@@ -125,7 +125,7 @@ func TestCommentsMockResolveComment(t *testing.T) {
 			fmt.Fprint(w, `{"id":"reply002","content":"This comment has been resolved.","author":{"displayName":"Alice"},"createdTime":"2026-02-18T10:10:00Z"}`)
 		},
 	})
-	handler := makeResolveCommentHandler(testClientFunc(ts), "document", "document_id")
+	handler := makeResolveCommentHandler(testClientFunc(ts), "docs", "document_id")
 	text := callHandlerOK(t, handler, map[string]any{
 		"document_id":       "doc001",
 		"comment_id":        "comment001",

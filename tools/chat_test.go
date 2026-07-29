@@ -23,3 +23,21 @@ func TestMessagesWithSpace(t *testing.T) {
 		t.Fatalf("expected empty slice, got %#v", got)
 	}
 }
+
+func TestNormalizeChatSpaceID(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		in, want string
+	}{
+		{"", ""},
+		{"spaces/AAAA", "spaces/AAAA"},
+		{"AAAA", "spaces/AAAA"},
+		{"  BBBB  ", "spaces/BBBB"},
+		{"spaces/AAAA/messages/1", "spaces/AAAA/messages/1"},
+	}
+	for _, tc := range cases {
+		if got := normalizeChatSpaceID(tc.in); got != tc.want {
+			t.Errorf("normalizeChatSpaceID(%q)=%q, want %q", tc.in, got, tc.want)
+		}
+	}
+}

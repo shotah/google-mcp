@@ -23,9 +23,9 @@ func RegisterAuthTools(s *mcpserver.MCPServer) {
 	store := auth.NewCredentialStore()
 
 	s.AddTool(
-		mcp.NewTool("auth_start",
+		newMCPTool("auth_start",
 			mcp.WithDescription(
-				"Start legacy Google OAuth (disabled when MCP_ENABLE_OAUTH21=true). Returns auth URL/instructions. Prefer calling any Workspace tool first — auth usually runs automatically. Use to re-auth, switch account, or retry after auth failure. Requires service_name (e.g. Gmail, Google Calendar).",
+				"Rare re-auth escape hatch. Prefer human CLI setup: `google-mcp auth` (or login) once; MCP tools refresh tokens automatically. Returns an auth URL if re-auth is needed. Disabled when MCP_ENABLE_OAUTH21=true. Requires service_name (e.g. Gmail).",
 			),
 			mcp.WithString("service_name",
 				mcp.Required(),

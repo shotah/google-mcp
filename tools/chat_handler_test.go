@@ -32,6 +32,9 @@ func TestChatHandlerGetMessagesMissingSpaceID(t *testing.T) {
 	if !strings.Contains(strings.ToLower(text), "space_id") {
 		t.Errorf("expected error mentioning 'space_id', got %q", text)
 	}
+	if !strings.Contains(text, "Next:") || !strings.Contains(text, "chat_list_spaces") {
+		t.Errorf("expected Next: teach-in via chat_list_spaces, got %q", text)
+	}
 }
 
 func TestChatHandlerGetMessagesAuthFailure(t *testing.T) {
@@ -58,6 +61,9 @@ func TestChatHandlerSendMessageMissingSpaceID(t *testing.T) {
 	}
 	if !strings.Contains(strings.ToLower(text), "space_id") {
 		t.Errorf("expected error mentioning 'space_id', got %q", text)
+	}
+	if !strings.Contains(text, "Next:") || !strings.Contains(text, "chat_list_spaces") {
+		t.Errorf("expected Next: teach-in via chat_list_spaces, got %q", text)
 	}
 }
 

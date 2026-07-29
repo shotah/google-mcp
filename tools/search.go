@@ -115,63 +115,25 @@ func executeSearch(ctx context.Context, email, q string, num, start int, safe st
 // --- search_query ---
 
 func registerSearchCustom(s *mcpserver.MCPServer) {
-	tool := mcp.NewTool("search_query",
-		mcp.WithDescription("Web search via Google Programmable Search (Custom Search JSON API). Returns titles, snippets, links. Use for general web lookup. Not Drive/Gmail — use workspace tools. Site-limited: search_query_siterestrict."),
-		mcp.WithString("user_google_email",
-			mcp.Required(),
-			mcp.Description("The user's Google email address."),
-		),
-		mcp.WithString("q",
-			mcp.Required(),
-			mcp.Description("The search query."),
-		),
-		mcp.WithNumber("num",
-			mcp.Description("Number of results to return (1-10). Defaults to 10."),
-		),
-		mcp.WithNumber("start",
-			mcp.Description("The index of the first result to return (1-based). Defaults to 1."),
-		),
-		mcp.WithString("safe",
-			mcp.Description("Safe search level. Defaults to \"off\"."),
-			mcp.Enum("active", "moderate", "off"),
-		),
-		mcp.WithString("search_type",
-			mcp.Description("Search for images if set to \"image\"."),
-			mcp.Enum("image"),
-		),
-		mcp.WithString("site_search",
-			mcp.Description("Restrict search to a specific site/domain."),
-		),
-		mcp.WithString("site_search_filter",
-			mcp.Description("Exclude (\"e\") or include (\"i\") site_search results."),
-			mcp.Enum("e", "i"),
-		),
-		mcp.WithString("date_restrict",
-			mcp.Description("Restrict results by date (e.g., \"d5\" for past 5 days, \"m3\" for past 3 months)."),
-		),
-		mcp.WithString("file_type",
-			mcp.Description("Filter by file type (e.g., \"pdf\", \"doc\")."),
-		),
-		mcp.WithString("language",
-			mcp.Description("Language code for results (e.g., \"lang_en\")."),
-		),
-		mcp.WithString("country",
-			mcp.Description("Country code for results (e.g., \"countryUS\")."),
-		),
+	tool := newMCPTool("search_query",
+		mcp.WithDescription("Web search (titles, snippets, links). Use for general lookup. Not Drive/Gmail — use workspace tools. Site-limited: search_query_siterestrict."),
+		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
+		mcp.WithString("q", mcp.Required(), mcp.Description("Search query.")),
 	)
 	RegisterTool(s, tool, handleSearchCustom)
 }
 
 func handleSearchCustom(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	email, err := resolveEmail(request)
-	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
-	}
 	q, err := request.RequireString("q")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return needArg("q", `search_query(q="…")`), nil
+	}
+	email, err := resolveEmail(request)
+	if err != nil {
+		return needArg("user_google_email", `search_query(q="…")`), nil
 	}
 
+	// Optional filters still accepted if a client sends them (not in lean schema).
 	num := request.GetInt("num", 10)
 	start := request.GetInt("start", 1)
 	safe := request.GetString("safe", "off")
@@ -193,7 +155,7 @@ func handleSearchCustom(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 // --- search_get_engine_info ---
 
 func registerGetSearchEngineInfo(s *mcpserver.MCPServer) {
-	tool := mcp.NewTool("search_get_engine_info",
+	tool := newMCPTool("search_get_engine_info",
 		mcp.WithDescription("Metadata about the configured Programmable Search Engine (cx). Use to verify search setup. Not for running a query — use search_query."),
 		mcp.WithString("user_google_email",
 			mcp.Required(),
@@ -327,7 +289,7 @@ func valueOrDefault(value, fallback string) string {
 // --- search_query_siterestrict ---
 
 func registerSearchCustomSiterestrict(s *mcpserver.MCPServer) {
-	tool := mcp.NewTool("search_query_siterestrict",
+	tool := newMCPTool("search_query_siterestrict",
 		mcp.WithDescription("Web search limited to specific site(s) via Programmable Search. Use for 'search company.com for…'. Broader web: search_query."),
 		mcp.WithString("user_google_email",
 			mcp.Required(),

@@ -24,11 +24,14 @@ compound (`google-workspace`). Hosts expose `{server}__{tool}`, so both halves m
   "mcpServers": {
     "google": {
       "command": "google-mcp",
-      "args": ["--tools", "gmail calendar tasks", "--tool-tier", "core", "--capability", "edit"]
+      "args": ["--preset", "everyday"]
     }
   }
 }
 ```
+
+- `everyday` = gmail+calendar+docs+sheets+tasks, core, edit ≈ 20 tools (personal assistant; **Drive usually not needed** for Sheets/Docs).
+- `lean` = gmail+calendar only ≈ 10 tools (tiny models).
 
 ## Rename map
 
@@ -53,20 +56,60 @@ Highlights:
 - Rewrite persona recipes from `google-workspace__create_event` → `google__calendar_create_event`
 - Keep **math** / **strava** / **garmin** as separate short servers
 
-## Next: agent clarity (most → least impactful)
+## Done (agent-clarity foundations)
 
-For small local models (e.g. Qwen 35B). Pick what to implement; order is recommended priority.
+1. [x] Starve catalog via presets (`lean` / `everyday`) + filters
+2. ~~Host-side intent recipes~~ — not in this repo (ai-gantry / persona)
+3. [x] Split overloaded calendar list vs get
+4. [x] Auth = CLI + silent refresh (`google-mcp auth`)
+5. [x] Presets + Drive vs Docs/Sheets docs
+6–8. [x] Teach-in errors, trim hot schemas, MCP annotations (`newMCPTool`)
+9. [x] Lean docs + sheets core for `everyday`
+10. [x] Lean tasks core + add `tasks` to `everyday`
 
-1. **Starve the tool catalog on the host** — Prefer `--tools gmail calendar --tool-tier core --capability edit` (~9 tools) over full core (~45). Add drive/tasks only when the persona needs them. Biggest win; mostly config, not code.
-2. **Host-side intent recipes** — In ai-gantry / persona `TOOLS.md`, pin 8–10 intents → exact tool + args. Small models route from examples better than from long schemas. Consumer-side.
-3. **Split overloaded tools** — e.g. `calendar_list_events` (range list) vs `calendar_get_event` (requires `event_id`). Removes `event_id="primary"` class failures. Same pattern anywhere an optional id branches behavior.
-4. **Auth is user setup + silent refresh (not an agent tool)** —
-   - **First token (human / CLI):** expose something like `google-mcp auth` (or `login`) so the user runs OAuth once, gets `~/.google_workspace_mcp/credentials/{email}.json`, and can copy that file onto the agent host. Document this in the README (today README still says “ask the assistant to call `auth_start`” — replace that).
-   - **Runtime (MCP):** validate/refresh credentials before API calls; do not require the model to call `auth_start`. Drop `auth_start` from lean surfaces (keep only if useful as a rare re-auth escape hatch).
-5. **`--preset` for a lean everyday surface** — One flag that selects services + tier + capability (e.g. gmail+calendar+tasks, core, edit). Name the *surface* (`lean` / `everyday` / `minimal`), not “agent” — MCP is always agent-facing. Auth is CLI setup, not part of the preset tool list.
-6. **Teach in error messages** — Shorten hot-path descriptions; on bad args return the exact next call (tool name + required params). 35B often skips long description text under tool pressure.
-7. **Trim optional params on hot tools** — e.g. drop/hide `detailed` / `include_attachments` noise on everyday calendar list so schemas stay small.
-8. **MCP readOnly / destructive annotations** — If the host surfaces them; secondary to count and split tools.
+## Next: production-ready agent UX (all services)
+
+**Thesis:** Much of this surface looks ported from API coverage, not from watching a real agent fail. Every **core** tool (and hot extended ones) should pass the same bar we applied to calendar/gmail/docs/sheets.
+
+### What `--tool-tier` means (not a mystery)
+
+Defined in `tools/tiers.go`. It is **how deep** each *enabled* service goes — orthogonal to `--tools` (which services) and `--capability` (read/edit/complete).
+
+| Tier | Meaning |
+| --- | --- |
+| `core` | Everyday path an assistant actually needs for that service |
+| `extended` | Discovery / management (list-by-name, folders, filters, …) |
+| `complete` | Rare / power-user / destructive-adjacent extras |
+
+Presets always use `core` so small models never see the long tail unless you ask.
+
+### Lean playbook (apply per service)
+
+For each **core** tool:
+
+1. **Short description** — what it returns + 1–2 Use-for phrases + Prefer/Not-for disambiguation (≤ ~400 chars).
+2. **Minimal schema** — only params the happy path needs; drop formatting/power flags from schema (handlers may still accept them if sent).
+3. **Teach-in errors** — `needArg` / `toolHint` with exact next call (`tool(required=…)`).
+4. **Split arity** — if optional id changes list vs get, split tools (calendar pattern).
+5. **Required ids called out** — `spreadsheet_id`, `tasklist_id`, `document_id`, …
+6. **Destructive confirm** — in description when unclear; annotations already via `newMCPTool`.
+
+Do **not**: load Drive “because Docs”; dual-alias old names; lengthen descriptions; put power tools in `core`.
+
+### Remaining service audit (priority)
+
+Order = personal-assistant impact first, then specialty surfaces.
+
+| Priority | Service | Status | Notes |
+| --- | --- | --- | --- |
+| — | gmail, calendar, docs, sheets, tasks | **done (core)** | `everyday` includes tasks; use `task_list_id="@default"` |
+| 11 | **drive** | **done (core)** | Lean search/get/create/share; not in everyday |
+| 12 | **contacts** | **done (core)** | Search/get/list/create lean; batch delete capability-gated |
+| 13 | **chat** | **done (core)** | space_id normalize + teach via `chat_list_spaces` |
+| 14 | **slides** | **done (core)** | Create/get lean; batch_update stays extended |
+| 15 | **forms** | **done (core)** | Create/get lean |
+| 16 | **comments** | **done** | Short schemas; resolve destructive + confirm |
+| 17 | **search** / **appscript** | **done (core)** | Specialty surfaces leaned; not in presets |
 
 **Deprioritize:** dual/alias old names; longer descriptions; loading all 12 services “just in case.”
 
@@ -79,4 +122,8 @@ For small local models (e.g. Qwen 35B). Pick what to implement; order is recomme
 - [x] Handler / mock / tier tests
 - [x] README + AGENTS.md
 - [x] MCP `ServerName` = `google`
+- [x] `--preset lean` / `everyday` (+ tasks) + Drive vs Docs/Sheets guidance
+- [x] `google-mcp auth` / `login` CLI + README (auth out of agent path)
+- [x] Split `calendar_list_events` / `calendar_get_event`
+- [x] Agent-UX lean overhaul — all services’ core tools
 - [ ] Announce breaking change in GitHub Release notes (on next release)

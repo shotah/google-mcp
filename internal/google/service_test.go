@@ -66,7 +66,7 @@ func TestGetAuthenticatedClient_MissingCredentials(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing credentials")
 	}
-	if want := "no credentials found for nobody@example.com"; err.Error() != want {
+	if want := "no credentials found for nobody@example.com; run: google-mcp auth"; err.Error() != want {
 		t.Errorf("got error %q, want %q", err.Error(), want)
 	}
 }

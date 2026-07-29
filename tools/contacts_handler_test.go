@@ -31,6 +31,9 @@ func TestContactsHandlerGetContactMissingContactID(t *testing.T) {
 	if !strings.Contains(strings.ToLower(text), "contact_id") {
 		t.Errorf("expected error mentioning 'contact_id', got %q", text)
 	}
+	if !strings.Contains(text, "Next:") || !strings.Contains(text, "contacts_search") {
+		t.Errorf("expected Next: teach-in via contacts_search, got %q", text)
+	}
 }
 
 func TestContactsHandlerGetContactAuthFailure(t *testing.T) {
@@ -57,6 +60,9 @@ func TestContactsHandlerSearchContactsMissingQuery(t *testing.T) {
 	}
 	if !strings.Contains(strings.ToLower(text), "query") {
 		t.Errorf("expected error mentioning 'query', got %q", text)
+	}
+	if !strings.Contains(text, "Next:") {
+		t.Errorf("expected Next: teach-in, got %q", text)
 	}
 }
 
@@ -89,9 +95,6 @@ func TestContactsHandlerGetContactGroupMissingGroupID(t *testing.T) {
 }
 
 // --- contacts_create ---
-// contacts_create has no RequireString params. It calls resolveEmail (succeeds via env),
-// then newPeopleService (auth failure), then buildPersonBody check.
-// Auth failure comes before the buildPersonBody check.
 
 func TestContactsHandlerCreateContactAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
@@ -108,18 +111,17 @@ func TestContactsHandlerCreateContactAuthFailure(t *testing.T) {
 }
 
 func TestContactsHandlerCreateContactNoFields(t *testing.T) {
-	// contacts_create with no fields calls newPeopleService first (auth failure),
-	// then buildPersonBody. Since auth fails first, we can only test auth here.
-	// But let's test that an empty call hits auth before field validation.
 	s := newToolTestServer(t)
 	text, isError := callTool(t, s, "contacts_create", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
-	// Auth failure comes before field validation
 	lower := strings.ToLower(text)
-	if !strings.Contains(lower, "credentials") && !strings.Contains(lower, "authenticating") {
-		t.Errorf("expected error about credentials/auth, got %q", text)
+	if !strings.Contains(lower, "field") && !strings.Contains(lower, "given_name") {
+		t.Errorf("expected error about required fields, got %q", text)
+	}
+	if !strings.Contains(text, "Next:") {
+		t.Errorf("expected Next: teach-in, got %q", text)
 	}
 }
 

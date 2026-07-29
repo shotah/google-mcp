@@ -164,8 +164,11 @@ func TestDocsHandlerModifyDocTextMissingTextAndFormatting(t *testing.T) {
 		t.Fatal("expected isError=true")
 	}
 	lower := strings.ToLower(text)
-	if !strings.Contains(lower, "text") && !strings.Contains(lower, "formatting") {
-		t.Errorf("expected error mentioning 'text' or 'formatting', got %q", text)
+	if !strings.Contains(lower, "text") {
+		t.Errorf("expected error mentioning 'text', got %q", text)
+	}
+	if !strings.Contains(lower, "next:") {
+		t.Errorf("expected teach-in next call, got %q", text)
 	}
 }
 

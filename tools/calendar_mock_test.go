@@ -107,7 +107,7 @@ func TestCalendarMockGetEvents(t *testing.T) {
 				},
 			},
 		})
-		handler := handleGetEvents(testClientFunc(ts))
+		handler := handleListEvents(testClientFunc(ts))
 		text := callHandlerOK(t, handler, map[string]any{
 			"time_min":          "2026-02-18T00:00:00Z",
 			"time_max":          "2026-02-19T00:00:00Z",
@@ -127,77 +127,13 @@ func TestCalendarMockGetEvents(t *testing.T) {
 		}
 	})
 
-	t.Run("success_single_event_by_id", func(t *testing.T) {
-		ts := calendarFakeServer(t, map[string]any{
-			"/calendar/v3/calendars/primary/events/evt001": map[string]any{
-				"id":          "evt001",
-				"summary":     "Important Meeting",
-				"description": "Discuss roadmap",
-				"location":    "Room 42",
-				"start":       map[string]any{"dateTime": "2026-02-18T14:00:00Z"},
-				"end":         map[string]any{"dateTime": "2026-02-18T15:00:00Z"},
-				"htmlLink":    "https://calendar.google.com/event?eid=evt001",
-			},
-		})
-		handler := handleGetEvents(testClientFunc(ts))
-		text := callHandlerOK(t, handler, map[string]any{
-			"event_id":          "evt001",
-			"user_google_email": "test@example.com",
-		})
-		if !strings.Contains(text, "Important Meeting") {
-			t.Errorf("expected event summary in output, got:\n%s", text)
-		}
-		if !strings.Contains(text, "evt001") {
-			t.Errorf("expected event ID in output")
-		}
-	})
-
-	t.Run("success_single_event_detailed", func(t *testing.T) {
-		ts := calendarFakeServer(t, map[string]any{
-			"/calendar/v3/calendars/primary/events/evt001": map[string]any{
-				"id":          "evt001",
-				"summary":     "Detailed Event",
-				"description": "Full details here",
-				"location":    "Conference Room B",
-				"start":       map[string]any{"dateTime": "2026-02-18T14:00:00Z"},
-				"end":         map[string]any{"dateTime": "2026-02-18T15:00:00Z"},
-				"htmlLink":    "https://calendar.google.com/event?eid=evt001",
-				"attendees": []map[string]any{
-					{"email": "alice@example.com", "responseStatus": "accepted"},
-					{"email": "bob@example.com", "responseStatus": "tentative"},
-				},
-			},
-		})
-		handler := handleGetEvents(testClientFunc(ts))
-		text := callHandlerOK(t, handler, map[string]any{
-			"event_id":          "evt001",
-			"detailed":          true,
-			"user_google_email": "test@example.com",
-		})
-		if !strings.Contains(text, "Event Details:") {
-			t.Errorf("expected detailed format, got:\n%s", text)
-		}
-		if !strings.Contains(text, "Full details here") {
-			t.Errorf("expected description in output")
-		}
-		if !strings.Contains(text, "Conference Room B") {
-			t.Errorf("expected location in output")
-		}
-		if !strings.Contains(text, "alice@example.com") {
-			t.Errorf("expected attendee email in output")
-		}
-		if !strings.Contains(text, "accepted") {
-			t.Errorf("expected response status in output")
-		}
-	})
-
 	t.Run("success_no_events", func(t *testing.T) {
 		ts := fakeAPIServer(t, map[string]any{
 			"/calendar/v3/calendars/primary/events": map[string]any{
 				"items": []map[string]any{},
 			},
 		})
-		handler := handleGetEvents(testClientFunc(ts))
+		handler := handleListEvents(testClientFunc(ts))
 		text := callHandlerOK(t, handler, map[string]any{
 			"time_min":          "2026-02-18T00:00:00Z",
 			"time_max":          "2026-02-18T01:00:00Z",
@@ -222,7 +158,7 @@ func TestCalendarMockGetEvents(t *testing.T) {
 				},
 			},
 		})
-		handler := handleGetEvents(testClientFunc(ts))
+		handler := handleListEvents(testClientFunc(ts))
 		text := callHandlerOK(t, handler, map[string]any{
 			"time_min":          "2026-02-20",
 			"time_max":          "2026-02-22",
@@ -233,6 +169,100 @@ func TestCalendarMockGetEvents(t *testing.T) {
 		}
 		if !strings.Contains(text, "2026-02-20") {
 			t.Errorf("expected all-day date in output")
+		}
+	})
+}
+
+// --- calendar_get_event ---
+
+func TestCalendarMockGetEvent(t *testing.T) {
+	t.Run("success_single_event_by_id", func(t *testing.T) {
+		ts := calendarFakeServer(t, map[string]any{
+			"/calendar/v3/calendars/primary/events/evt001": map[string]any{
+				"id":          "evt001",
+				"summary":     "Important Meeting",
+				"description": "Discuss roadmap",
+				"location":    "Room 42",
+				"start":       map[string]any{"dateTime": "2026-02-18T14:00:00Z"},
+				"end":         map[string]any{"dateTime": "2026-02-18T15:00:00Z"},
+				"htmlLink":    "https://calendar.google.com/event?eid=evt001",
+			},
+		})
+		handler := handleGetEvent(testClientFunc(ts))
+		text := callHandlerOK(t, handler, map[string]any{
+			"event_id":          "evt001",
+			"user_google_email": "test@example.com",
+		})
+		if !strings.Contains(text, "Important Meeting") {
+			t.Errorf("expected event summary in output, got:\n%s", text)
+		}
+		if !strings.Contains(text, "evt001") {
+			t.Errorf("expected event ID in output")
+		}
+		if !strings.Contains(text, "Event Details:") {
+			t.Errorf("expected detailed single-event format, got:\n%s", text)
+		}
+	})
+
+	t.Run("success_single_event_detailed", func(t *testing.T) {
+		ts := calendarFakeServer(t, map[string]any{
+			"/calendar/v3/calendars/primary/events/evt001": map[string]any{
+				"id":          "evt001",
+				"summary":     "Detailed Event",
+				"description": "Full details here",
+				"location":    "Conference Room B",
+				"start":       map[string]any{"dateTime": "2026-02-18T14:00:00Z"},
+				"end":         map[string]any{"dateTime": "2026-02-18T15:00:00Z"},
+				"htmlLink":    "https://calendar.google.com/event?eid=evt001",
+				"attendees": []map[string]any{
+					{"email": "alice@example.com", "responseStatus": "accepted"},
+					{"email": "bob@example.com", "responseStatus": "tentative"},
+				},
+			},
+		})
+		handler := handleGetEvent(testClientFunc(ts))
+		text := callHandlerOK(t, handler, map[string]any{
+			"event_id":          "evt001",
+			"detailed":          true,
+			"user_google_email": "test@example.com",
+		})
+		if !strings.Contains(text, "Event Details:") {
+			t.Errorf("expected detailed format, got:\n%s", text)
+		}
+		if !strings.Contains(text, "Full details here") {
+			t.Errorf("expected description in output")
+		}
+		if !strings.Contains(text, "Conference Room B") {
+			t.Errorf("expected location in output")
+		}
+		if !strings.Contains(text, "alice@example.com") {
+			t.Errorf("expected attendee email in output")
+		}
+		if !strings.Contains(text, "accepted") {
+			t.Errorf("expected response status in output")
+		}
+	})
+
+	t.Run("error_bogus_event_id_primary", func(t *testing.T) {
+		ts := calendarFakeServer(t, map[string]any{})
+		handler := handleGetEvent(testClientFunc(ts))
+		text := callHandlerErr(t, handler, map[string]any{
+			"event_id":          "primary",
+			"user_google_email": "test@example.com",
+		})
+		if !strings.Contains(text, "calendar_list_events") {
+			t.Errorf("expected hint to use calendar_list_events, got:\n%s", text)
+		}
+	})
+
+	t.Run("error_missing_event_id", func(t *testing.T) {
+		ts := calendarFakeServer(t, map[string]any{})
+		handler := handleGetEvent(testClientFunc(ts))
+		text := callHandlerErr(t, handler, map[string]any{
+			"user_google_email": "test@example.com",
+		})
+		if !strings.Contains(text, "event_id is required") {
+			t.Errorf("expected 'event_id is required', got:\n%s", text)
 		}
 	})
 }
@@ -606,7 +636,7 @@ func TestCalendarMockAPIError(t *testing.T) {
 		ts := fakeAPIServerWithStatus(t, map[string]statusResponse{
 			"/calendar/v3/calendars/primary/events": {code: 500, body: `{"error": {"code": 500, "message": "Internal Server Error"}}`},
 		})
-		handler := handleGetEvents(testClientFunc(ts))
+		handler := handleListEvents(testClientFunc(ts))
 		text := callHandlerErr(t, handler, map[string]any{
 			"time_min":          "2026-02-18T00:00:00Z",
 			"user_google_email": "test@example.com",

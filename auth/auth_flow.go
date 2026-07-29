@@ -13,6 +13,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -26,12 +28,25 @@ type CallbackResult struct {
 	Error string
 }
 
+// authSession is an in-progress localhost OAuth callback flow.
+type authSession struct {
+	oauthConfig *oauth2.Config
+	authURL     string
+	resultCh    <-chan CallbackResult
+	srv         *http.Server
+	userEmail   string
+	oauthCtx    context.Context
+}
+
 // StartAuthFlow initiates the Google OAuth flow for the given user.
 // It starts a local HTTP server to handle the callback, generates the
 // authorization URL, and returns a message for the user to follow.
 //
 // The callback server runs in the background and stores credentials
 // when the user completes the flow.
+//
+// Prefer RunInteractiveAuth (google-mcp auth) for first-time setup;
+// this remains as a rare MCP re-auth escape hatch.
 func StartAuthFlow(
 	ctx context.Context,
 	serviceName string,
@@ -39,10 +54,74 @@ func StartAuthFlow(
 	store *LocalDirectoryCredentialStore,
 	onCredentialStored ...func(email string),
 ) (string, error) {
+	sess, err := beginAuthSession(ctx, userEmail)
+	if err != nil {
+		return "", err
+	}
+
+	// Handle the callback asynchronously
+	go func() {
+		email, err := sess.waitAndStore(store, onCredentialStored...)
+		if err != nil {
+			log.Printf("OAuth flow error: %v", err)
+			return
+		}
+		log.Printf("Successfully stored credentials for %s", email)
+	}()
+
+	return authStartMessage(serviceName, userEmail, sess.authURL), nil
+}
+
+// RunInteractiveAuth runs a blocking OAuth login for humans (CLI).
+// It prints the authorization URL, optionally opens a browser, waits for the
+// callback, and stores credentials under the credential directory.
+//
+// openURL may be nil to skip opening a browser (caller still gets the URL on stderr).
+func RunInteractiveAuth(
+	ctx context.Context,
+	userEmail string,
+	store *LocalDirectoryCredentialStore,
+	openURL func(string) error,
+) (email string, path string, err error) {
+	sess, err := beginAuthSession(ctx, userEmail)
+	if err != nil {
+		return "", "", err
+	}
+
+	fmt.Fprintln(os.Stderr, "Authorize google-mcp in your browser.")
+	fmt.Fprintf(os.Stderr, "If the browser does not open, visit:\n\n%s\n\n", sess.authURL)
+	if openURL != nil {
+		if err := openURL(sess.authURL); err != nil {
+			fmt.Fprintf(os.Stderr, "Could not open browser automatically: %v\n", err)
+		}
+	}
+
+	email, err = sess.waitAndStore(store)
+	if err != nil {
+		return "", "", err
+	}
+	return email, store.CredentialPath(email), nil
+}
+
+// OpenBrowser opens url in the user's default browser.
+func OpenBrowser(url string) error {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	default:
+		cmd = exec.Command("xdg-open", url)
+	}
+	return cmd.Start()
+}
+
+func beginAuthSession(ctx context.Context, userEmail string) (*authSession, error) {
 	clientID := os.Getenv("GOOGLE_OAUTH_CLIENT_ID")
 	clientSecret := os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET")
 	if clientID == "" || clientSecret == "" {
-		return "", errors.New("OAuth client credentials not found. Please set GOOGLE_OAUTH_CLIENT_ID and " +
+		return nil, errors.New("OAuth client credentials not found. Please set GOOGLE_OAUTH_CLIENT_ID and " +
 			"GOOGLE_OAUTH_CLIENT_SECRET environment variables",
 		)
 	}
@@ -50,14 +129,14 @@ func StartAuthFlow(
 	// Generate CSRF state token
 	stateBytes := make([]byte, 16)
 	if _, err := rand.Read(stateBytes); err != nil {
-		return "", fmt.Errorf("generating state token: %w", err)
+		return nil, fmt.Errorf("generating state token: %w", err)
 	}
 	state := hex.EncodeToString(stateBytes)
 
 	// Find an available port for the callback server
 	port, err := findAvailablePort()
 	if err != nil {
-		return "", fmt.Errorf("finding available port: %w", err)
+		return nil, fmt.Errorf("finding available port: %w", err)
 	}
 
 	redirectURI := fmt.Sprintf("http://localhost:%d/oauth2callback", port)
@@ -78,69 +157,76 @@ func StartAuthFlow(
 		oauth2.SetAuthURLParam("prompt", "consent"),
 	)
 
-	// Start callback server in the background
 	resultCh := make(chan CallbackResult, 1)
 	srv := startCallbackServer(port, state, resultCh)
 
-	// OAuth callback outlives the tool call; keep values but not cancellation.
+	// OAuth callback outlives a short tool-call context; keep values but not cancellation.
 	oauthCtx := context.WithoutCancel(ctx)
 
-	// Handle the callback asynchronously
-	go func() {
-		defer func() {
-			shutdownCtx, cancel := context.WithTimeout(oauthCtx, 3*time.Second)
-			defer cancel()
-			if err := srv.Shutdown(shutdownCtx); err != nil {
-				log.Printf("OAuth callback server shutdown error: %v", err)
-			}
-		}()
+	return &authSession{
+		oauthConfig: oauthConfig,
+		authURL:     authURL,
+		resultCh:    resultCh,
+		srv:         srv,
+		userEmail:   userEmail,
+		oauthCtx:    oauthCtx,
+	}, nil
+}
 
-		select {
-		case result := <-resultCh:
-			if result.Error != "" {
-				log.Printf("OAuth callback error: %s", result.Error)
-				return
-			}
-
-			tok, err := oauthConfig.Exchange(oauthCtx, result.Code)
-			if err != nil {
-				log.Printf("OAuth token exchange error: %v", err)
-				return
-			}
-
-			// Fetch user email from the token
-			email, err := fetchUserEmail(tok)
-			if err != nil {
-				log.Printf("Failed to fetch user email: %v", err)
-				if userEmail != "" {
-					email = userEmail
-				} else {
-					return
-				}
-			}
-
-			// Store credentials
-			cred := &StoredCredential{
-				Token:  tok,
-				Config: oauthConfig,
-			}
-			if err := store.StoreCredential(email, cred); err != nil {
-				log.Printf("Failed to store credentials for %s: %v", email, err)
-				return
-			}
-			log.Printf("Successfully stored credentials for %s", email)
-
-			// Notify caller so it can invalidate caches.
-			for _, fn := range onCredentialStored {
-				fn(email)
-			}
-
-		case <-time.After(5 * time.Minute):
-			log.Printf("OAuth callback timed out after 5 minutes")
+func (s *authSession) waitAndStore(
+	store *LocalDirectoryCredentialStore,
+	onCredentialStored ...func(email string),
+) (string, error) {
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(s.oauthCtx, 3*time.Second)
+		defer cancel()
+		if err := s.srv.Shutdown(shutdownCtx); err != nil {
+			log.Printf("OAuth callback server shutdown error: %v", err)
 		}
 	}()
 
-	// Build user-facing message
+	var result CallbackResult
+	select {
+	case result = <-s.resultCh:
+	case <-time.After(5 * time.Minute):
+		return "", errors.New("OAuth callback timed out after 5 minutes")
+	case <-s.oauthCtx.Done():
+		return "", s.oauthCtx.Err()
+	}
+
+	if result.Error != "" {
+		return "", errors.New(result.Error)
+	}
+
+	tok, err := s.oauthConfig.Exchange(s.oauthCtx, result.Code)
+	if err != nil {
+		return "", fmt.Errorf("OAuth token exchange: %w", err)
+	}
+
+	email, err := fetchUserEmail(tok)
+	if err != nil {
+		if s.userEmail != "" {
+			email = s.userEmail
+		} else {
+			return "", fmt.Errorf("fetch user email: %w", err)
+		}
+	}
+
+	cred := &StoredCredential{
+		Token:  tok,
+		Config: s.oauthConfig,
+	}
+	if err := store.StoreCredential(email, cred); err != nil {
+		return "", fmt.Errorf("store credentials for %s: %w", email, err)
+	}
+
+	for _, fn := range onCredentialStored {
+		fn(email)
+	}
+	return email, nil
+}
+
+func authStartMessage(serviceName, userEmail, authURL string) string {
 	initialEmailProvided := userEmail != "" &&
 		strings.TrimSpace(userEmail) != "" &&
 		!strings.EqualFold(userEmail, "default")
@@ -152,6 +238,7 @@ func StartAuthFlow(
 
 	var msg strings.Builder
 	fmt.Fprintf(&msg, "**ACTION REQUIRED: Google Authentication Needed for %s**\n\n", userDisplayName)
+	msg.WriteString("Prefer first-time setup via CLI: `google-mcp auth` (or `google-mcp login`).\n\n")
 	fmt.Fprintf(&msg, "To proceed, the user must authorize this application for %s access using all required permissions.\n", serviceName)
 	msg.WriteString("**LLM, please present this exact authorization URL to the user as a clickable hyperlink:**\n")
 	fmt.Fprintf(&msg, "Authorization URL: %s\n", authURL)
@@ -169,7 +256,7 @@ func StartAuthFlow(
 
 	fmt.Fprintf(&msg, "\nThe application will use the new credentials. If '%s' was provided, it must match the authenticated account.", userEmail)
 
-	return msg.String(), nil
+	return msg.String()
 }
 
 // findAvailablePort finds a free TCP port on localhost.

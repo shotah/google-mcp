@@ -644,7 +644,7 @@ func gradientPointToInterpolation(pt gradientPoint) *sheets.InterpolationPoint {
 // --- sheets_list_spreadsheets ---
 
 func registerListSpreadsheets(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("sheets_list_spreadsheets",
+	tool := newMCPTool("sheets_list_spreadsheets",
 		mcp.WithDescription("List spreadsheets the user can access (name, spreadsheet_id, modified time). Use for 'find my sheet' before sheets_read_values. Not for Drive files generally — use drive_search_files."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address")),
 		mcp.WithNumber("max_results", mcp.Description("Maximum number of spreadsheets to return (default 25)")),
@@ -702,7 +702,7 @@ func registerListSpreadsheets(s *mcpserver.MCPServer, getClient httpClientFunc) 
 // --- sheets_get_spreadsheet_info ---
 
 func registerGetSpreadsheetInfo(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("sheets_get_spreadsheet_info",
+	tool := newMCPTool("sheets_get_spreadsheet_info",
 		mcp.WithDescription("Spreadsheet title, locale, and sheet tabs for spreadsheet_id. Use before read/modify when you need tab names. Not for cell values — use sheets_read_values."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address")),
 		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("The ID of the spreadsheet")),
@@ -779,20 +779,20 @@ func registerGetSpreadsheetInfo(s *mcpserver.MCPServer, getClient httpClientFunc
 // --- sheets_read_values ---
 
 func registerReadSheetValues(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("sheets_read_values",
-		mcp.WithDescription("READ cell values from spreadsheet_id + range_name (e.g. Sheet1!A1:D10). Use for 'what's in this spreadsheet'. Not for writes — use sheets_modify_values."),
-		mcp.WithString("user_google_email", mcp.Description("The user's Google email address")),
-		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("The ID of the spreadsheet")),
-		mcp.WithString("range_name", mcp.Description("The range to read (default A1:Z1000)")),
+	tool := newMCPTool("sheets_read_values",
+		mcp.WithDescription("Read cells from spreadsheet_id + range_name (e.g. Sheet1!A1:D10). Write → sheets_modify_values. New file → sheets_create_spreadsheet."),
+		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
+		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("Spreadsheet id from sheets_create_spreadsheet or a prior result.")),
+		mcp.WithString("range_name", mcp.Description("A1 range. Default: A1:Z1000.")),
 	)
 	s.AddTool(tool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		email, err := resolveEmail(request)
 		if err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
+			return needArg("user_google_email", `sheets_read_values(spreadsheet_id, range_name="Sheet1!A1:D10")`), nil
 		}
 		spreadsheetID, err := request.RequireString("spreadsheet_id")
 		if err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
+			return needArg("spreadsheet_id", "sheets_create_spreadsheet(title=…) then sheets_read_values(spreadsheet_id, range_name)"), nil
 		}
 		rangeName := request.GetString("range_name", "A1:Z1000")
 
@@ -839,27 +839,26 @@ func registerReadSheetValues(s *mcpserver.MCPServer, getClient httpClientFunc) {
 // --- sheets_modify_values ---
 
 func registerModifySheetValues(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("sheets_modify_values",
-		mcp.WithDescription("WRITE or CLEAR cells in spreadsheet_id + range_name (values 2D array or clear_values). Use for 'update this range', fill data. Not for styling — use sheets_format_range. Not for read — use sheets_read_values."),
-		mcp.WithString("user_google_email", mcp.Description("The user's Google email address")),
-		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("The ID of the spreadsheet")),
-		mcp.WithString("range_name", mcp.Required(), mcp.Description("The range to modify")),
-		mcp.WithString("values", mcp.Description("2D array of values as JSON string")),
-		mcp.WithString("value_input_option", mcp.Description("RAW or USER_ENTERED (default USER_ENTERED)")),
-		mcp.WithBoolean("clear_values", mcp.Description("If true, clears the range instead of writing")),
+	tool := newMCPTool("sheets_modify_values",
+		mcp.WithDescription("Write cells: spreadsheet_id + range_name + values (2D JSON). Clear range: clear_values=true. Read → sheets_read_values. Styling → sheets_format_range."),
+		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
+		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("Spreadsheet id from sheets_create_spreadsheet.")),
+		mcp.WithString("range_name", mcp.Required(), mcp.Description("A1 range to write or clear (e.g. Sheet1!A1).")),
+		mcp.WithString("values", mcp.Description("2D values as JSON, e.g. [[\"a\",\"b\"],[\"1\",\"2\"]].")),
+		mcp.WithBoolean("clear_values", mcp.Description("If true, clear the range instead of writing.")),
 	)
 	s.AddTool(tool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		email, err := resolveEmail(request)
 		if err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
+			return needArg("user_google_email", `sheets_modify_values(spreadsheet_id, range_name, values=[[…]])`), nil
 		}
 		spreadsheetID, err := request.RequireString("spreadsheet_id")
 		if err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
+			return needArg("spreadsheet_id", "sheets_create_spreadsheet(title=…) then sheets_modify_values(spreadsheet_id, range_name, values)"), nil
 		}
 		rangeName, err := request.RequireString("range_name")
 		if err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
+			return needArg("range_name", `sheets_modify_values(spreadsheet_id, range_name="Sheet1!A1", values=[[…]])`), nil
 		}
 		valueInputOption := request.GetString("value_input_option", "USER_ENTERED")
 		clearValues := getBool(request, "clear_values", false)
@@ -887,7 +886,7 @@ func registerModifySheetValues(s *mcpserver.MCPServer, getClient httpClientFunc)
 		args := request.GetArguments()
 		rawValues, hasValues := args["values"]
 		if !hasValues || rawValues == nil {
-			return mcp.NewToolResultError("either 'values' must be provided or 'clear_values' must be true"), nil
+			return needArg("values", `sheets_modify_values(spreadsheet_id, range_name, values=[["col1","col2"],["1","2"]]) or clear_values=true`), nil
 		}
 
 		var values [][]any
@@ -941,7 +940,7 @@ func registerModifySheetValues(s *mcpserver.MCPServer, getClient httpClientFunc)
 // --- sheets_format_range ---
 
 func registerFormatSheetRange(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("sheets_format_range",
+	tool := newMCPTool("sheets_format_range",
 		mcp.WithDescription("Apply colors/number formats to spreadsheet_id + range_name (#RRGGBB, NUMBER/CURRENCY/DATE, etc.). Use for styling cells. Not for values — use sheets_modify_values."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address")),
 		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("The ID of the spreadsheet")),
@@ -1096,7 +1095,7 @@ func sortedKeys(m map[string]bool) []string {
 // --- sheets_add_conditional_formatting ---
 
 func registerAddConditionalFormatting(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("sheets_add_conditional_formatting",
+	tool := newMCPTool("sheets_add_conditional_formatting",
 		mcp.WithDescription("Add conditional formatting rule on spreadsheet_id + range_name (condition_type, colors). Use for highlight rules. Update/delete by rule_index with update/sheets_delete_conditional_formatting."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address")),
 		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("The ID of the spreadsheet")),
@@ -1305,7 +1304,7 @@ func registerAddConditionalFormatting(s *mcpserver.MCPServer, getClient httpClie
 // --- sheets_update_conditional_formatting ---
 
 func registerUpdateConditionalFormatting(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("sheets_update_conditional_formatting",
+	tool := newMCPTool("sheets_update_conditional_formatting",
 		mcp.WithDescription("Update conditional formatting by rule_index on spreadsheet_id. Optional new range/condition/colors. Not for new rules — use sheets_add_conditional_formatting."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address")),
 		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("The ID of the spreadsheet")),
@@ -1562,7 +1561,7 @@ func registerUpdateConditionalFormatting(s *mcpserver.MCPServer, getClient httpC
 // --- sheets_delete_conditional_formatting ---
 
 func registerDeleteConditionalFormatting(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("sheets_delete_conditional_formatting",
+	tool := newMCPTool("sheets_delete_conditional_formatting",
 		mcp.WithDescription("Delete conditional formatting rule by rule_index on spreadsheet_id. Destructive — confirm when unclear. Not for add — use sheets_add_conditional_formatting."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address")),
 		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("The ID of the spreadsheet")),
@@ -1640,20 +1639,20 @@ func registerDeleteConditionalFormatting(s *mcpserver.MCPServer, getClient httpC
 // --- sheets_create_spreadsheet ---
 
 func registerCreateSpreadsheet(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("sheets_create_spreadsheet",
-		mcp.WithDescription("Create a new spreadsheet (title, optional sheet_names). Returns spreadsheet_id. Use for 'new Google Sheet'. Not new tab in existing file — use sheets_create_sheet."),
-		mcp.WithString("user_google_email", mcp.Description("The user's Google email address")),
-		mcp.WithString("title", mcp.Required(), mcp.Description("Title of the new spreadsheet")),
-		mcp.WithArray("sheet_names", mcp.Description("List of sheet names to create"), mcp.Items(map[string]any{"type": "string"})),
+	tool := newMCPTool("sheets_create_spreadsheet",
+		mcp.WithDescription("Create a spreadsheet. Required: title. Returns spreadsheet_id. Then sheets_modify_values / sheets_read_values. New tab in existing file → sheets_create_sheet."),
+		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
+		mcp.WithString("title", mcp.Required(), mcp.Description("Spreadsheet title.")),
+		mcp.WithArray("sheet_names", mcp.Description("Optional tab names to create."), mcp.Items(map[string]any{"type": "string"})),
 	)
 	s.AddTool(tool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		email, err := resolveEmail(request)
 		if err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
+			return needArg("user_google_email", "sheets_create_spreadsheet(title=…)"), nil
 		}
 		title, err := request.RequireString("title")
 		if err != nil {
-			return mcp.NewToolResultError(err.Error()), nil
+			return needArg("title", "sheets_create_spreadsheet(title=…)"), nil
 		}
 
 		svc, err := newSheetsService(ctx, getClient, email)
@@ -1701,7 +1700,7 @@ func registerCreateSpreadsheet(s *mcpserver.MCPServer, getClient httpClientFunc)
 // --- sheets_create_sheet ---
 
 func registerCreateSheet(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("sheets_create_sheet",
+	tool := newMCPTool("sheets_create_sheet",
 		mcp.WithDescription("Add a new tab (sheet_name) inside existing spreadsheet_id. Use for 'add a sheet called…'. Not a new file — use sheets_create_spreadsheet."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address")),
 		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("The ID of the spreadsheet")),

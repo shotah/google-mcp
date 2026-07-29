@@ -45,12 +45,10 @@ func newFormsService(ctx context.Context, getClient httpClientFunc, email string
 // --- forms_create ---
 
 func registerCreateForm(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("forms_create",
-		mcp.WithDescription("Create a new Google Form (title, optional description). Returns form_id and URLs. Use for 'make a survey/form'. Edit questions with forms_batch_update."),
-		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
-		mcp.WithString("title", mcp.Required(), mcp.Description("The title of the form.")),
-		mcp.WithString("description", mcp.Description("The description of the form.")),
-		mcp.WithString("document_title", mcp.Description("The document title (shown in browser tab).")),
+	tool := newMCPTool("forms_create",
+		mcp.WithDescription("Create a Google Form. Required: title. Returns form_id + URLs. Then forms_batch_update / forms_get."),
+		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
+		mcp.WithString("title", mcp.Required(), mcp.Description("Form title.")),
 	)
 	s.AddTool(tool, handleCreateForm(getClient))
 }
@@ -59,13 +57,14 @@ func handleCreateForm(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		email, err := resolveEmail(request)
 		if err != nil {
-			return mcp.NewToolResultError("user_google_email is required"), nil
+			return needArg("user_google_email", "forms_create(title=…)"), nil
 		}
 		title, err := request.RequireString("title")
 		if err != nil {
-			return mcp.NewToolResultError("title is required"), nil
+			return needArg("title", "forms_create(title=…)"), nil
 		}
 
+		// Optional fields still accepted if a client sends them (not in lean schema).
 		description := request.GetString("description", "")
 		documentTitle := request.GetString("document_title", "")
 
@@ -115,10 +114,10 @@ func handleCreateForm(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 // --- forms_get ---
 
 func registerGetForm(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("forms_get",
-		mcp.WithDescription("READ form structure: title, questions, settings, responder URLs. Required form_id. Use before forms_batch_update or listing responses. Not for answers — use forms_list_responses."),
-		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
-		mcp.WithString("form_id", mcp.Required(), mcp.Description("The ID of the form to retrieve.")),
+	tool := newMCPTool("forms_get",
+		mcp.WithDescription("Get form structure (title, questions, settings, URLs) by form_id. Not answers — use forms_list_responses."),
+		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
+		mcp.WithString("form_id", mcp.Required(), mcp.Description("Form id from forms_create or a prior result.")),
 	)
 	s.AddTool(tool, handleGetForm(getClient))
 }
@@ -127,11 +126,11 @@ func handleGetForm(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		email, err := resolveEmail(request)
 		if err != nil {
-			return mcp.NewToolResultError("user_google_email is required"), nil
+			return needArg("user_google_email", "forms_get(form_id=…)"), nil
 		}
 		formID, err := request.RequireString("form_id")
 		if err != nil {
-			return mcp.NewToolResultError("form_id is required"), nil
+			return needArg("form_id", "forms_create(title=…) then forms_get(form_id)"), nil
 		}
 
 		svc, err := newFormsService(ctx, getClient, email)
@@ -203,7 +202,7 @@ func handleGetForm(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 // --- forms_set_publish_settings ---
 
 func registerSetPublishSettings(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("forms_set_publish_settings",
+	tool := newMCPTool("forms_set_publish_settings",
 		mcp.WithDescription("Change publish/accept-response settings for form_id. Use for 'open/close the form'. Not for editing questions — use forms_batch_update."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("form_id", mcp.Required(), mcp.Description("The ID of the form to update publish settings for.")),
@@ -271,7 +270,7 @@ func handleSetPublishSettings(getClient httpClientFunc) mcpserver.ToolHandlerFun
 // --- forms_get_response ---
 
 func registerGetFormResponse(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("forms_get_response",
+	tool := newMCPTool("forms_get_response",
 		mcp.WithDescription("Get one form submission by form_id + response_id. Use after forms_list_responses when you need full answers for one response."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("form_id", mcp.Required(), mcp.Description("The ID of the form.")),
@@ -351,7 +350,7 @@ func handleGetFormResponse(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 // --- forms_list_responses ---
 
 func registerListFormResponses(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("forms_list_responses",
+	tool := newMCPTool("forms_list_responses",
 		mcp.WithDescription("List form responses for form_id (paginated). Use for 'show survey results', export answers. Prefer forms_get_response for one submission."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("form_id", mcp.Required(), mcp.Description("The ID of the form.")),
@@ -432,7 +431,7 @@ func handleListFormResponses(getClient httpClientFunc) mcpserver.ToolHandlerFunc
 // --- forms_batch_update ---
 
 func registerBatchUpdateForm(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("forms_batch_update",
+	tool := newMCPTool("forms_batch_update",
 		mcp.WithDescription("Add/update/delete form items and metadata on form_id (questions, sections, settings). Use for 'add a question', restructure form. Prefer forms_get first. Not for reading responses — use forms_list_responses."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("form_id", mcp.Required(), mcp.Description("The ID of the form to update.")),
