@@ -52,21 +52,24 @@ func TestNoFilterLoadsAllTools(t *testing.T) {
 func TestTierCoreFiltering(t *testing.T) {
 	s := newTestServer(t, server.Config{ToolTier: "core"})
 	names := registeredToolNames(t, s)
-	// Gmail core (5) + Drive core (7) + Calendar core (6, includes calendar_get_event + calendar_delete_event) + Docs core (3) + Sheets core (3) + Chat core (3) + Forms core (2) + Slides core (2) + Tasks core (4) + Contacts core (4) + Search core (1) + AppScript core (7) = 47.
-	if len(names) != 47 {
-		t.Errorf("expected 47 tools with core tier, got %d: %v", len(names), names)
+	// Gmail core (5) + Drive core (7) + Calendar core (6, includes calendar_get_event + calendar_delete_event) + Docs core (3) + Sheets core (3) + Chat core (3) + Forms core (2) + Slides core (2) + Tasks core (6, includes tasklist list/create) + Contacts core (4) + Search core (1) + AppScript core (7) = 49.
+	if len(names) != 49 {
+		t.Errorf("expected 49 tools with core tier, got %d: %v", len(names), names)
 	}
 	if !names["calendar_delete_event"] {
 		t.Error("expected calendar_delete_event in core tier")
+	}
+	if !names["tasks_create_tasklist"] || !names["tasks_list_tasklists"] {
+		t.Error("expected tasklist list/create in core tier (everyday grocery-list path)")
 	}
 }
 
 func TestTierExtendedFiltering(t *testing.T) {
 	s := newTestServer(t, server.Config{ToolTier: "extended"})
 	names := registeredToolNames(t, s)
-	// Gmail core+extended (13) + Drive core+extended (14) + Calendar core+extended (7) + Docs core+extended (9) + Sheets core+extended (5) + Chat core+extended (4) + Forms core+extended (3) + Slides core+extended (5) + Tasks core+extended (5) + Contacts core+extended (8) + Search core+extended (2) + AppScript core+extended (17) = 92.
-	if len(names) != 92 {
-		t.Errorf("expected 92 tools with extended tier, got %d: %v", len(names), names)
+	// Gmail core+extended (13) + Drive core+extended (14) + Calendar core+extended (7) + Docs core+extended (9) + Sheets core+extended (5) + Chat core+extended (4) + Forms core+extended (3) + Slides core+extended (5) + Tasks core+extended (7) + Contacts core+extended (8) + Search core+extended (2) + AppScript core+extended (17) = 94.
+	if len(names) != 94 {
+		t.Errorf("expected 94 tools with extended tier, got %d: %v", len(names), names)
 	}
 }
 
@@ -165,13 +168,13 @@ func TestReadOnlyPlusTierComposition(t *testing.T) {
 	// Read-only + core tier: Gmail core read-only (3) + Drive core read-only (4)
 	// + Calendar core read-only (3) + Docs core read-only (1: docs_get_content) + Sheets core read-only (1: sheets_read_values)
 	// + Chat core read-only (2: chat_list_messages, chat_search_messages) + Forms core read-only (1: forms_get)
-	// + Slides core read-only (1: slides_get_presentation) + Tasks core read-only (2: tasks_get_task, tasks_list_tasks)
+	// + Slides core read-only (1: slides_get_presentation) + Tasks core read-only (3: tasks_get_task, tasks_list_tasks, tasks_list_tasklists)
 	// + Contacts core read-only (3: contacts_search, contacts_get, contacts_list) + Search core read-only (1: search_query)
-	// + AppScript core read-only (3: appscript_list_projects, appscript_get_project, appscript_get_content) = 25.
+	// + AppScript core read-only (3: appscript_list_projects, appscript_get_project, appscript_get_content) = 26.
 	s2 := newTestServer(t, server.Config{ReadOnly: true, ToolTier: "core"})
 	names2 := registeredToolNames(t, s2)
-	if len(names2) != 25 {
-		t.Errorf("expected 25 tools with read-only + core tier, got %d: %v", len(names2), names2)
+	if len(names2) != 26 {
+		t.Errorf("expected 26 tools with read-only + core tier, got %d: %v", len(names2), names2)
 	}
 }
 
@@ -231,8 +234,8 @@ func TestCapabilityEditPlusCore(t *testing.T) {
 	s := newTestServer(t, server.Config{ToolTier: "core", Capability: "edit"})
 	names := registeredToolNames(t, s)
 	// Core has no destructive tools, so edit does not shrink core further.
-	if len(names) != 47 {
-		t.Errorf("expected 47 tools with core+edit, got %d: %v", len(names), names)
+	if len(names) != 49 {
+		t.Errorf("expected 49 tools with core+edit, got %d: %v", len(names), names)
 	}
 	if !names["calendar_delete_event"] {
 		t.Error("expected calendar_delete_event with core+edit")
@@ -288,7 +291,7 @@ func TestLeanPresetSurface(t *testing.T) {
 }
 
 func TestEverydayPresetSurface(t *testing.T) {
-	// --preset everyday → gmail + calendar + docs + sheets + tasks, core, edit ≈ 21 tools.
+	// --preset everyday → gmail + calendar + docs + sheets + tasks, core, edit ≈ 23 tools.
 	// Drive is not required for Docs/Sheets core work.
 	s := newTestServer(t, server.Config{
 		Tools:      []string{"gmail", "calendar", "docs", "sheets", "tasks"},
@@ -296,8 +299,8 @@ func TestEverydayPresetSurface(t *testing.T) {
 		Capability: "edit",
 	})
 	names := registeredToolNames(t, s)
-	if len(names) != 21 {
-		t.Errorf("expected 21 tools for everyday preset, got %d: %v", len(names), names)
+	if len(names) != 23 {
+		t.Errorf("expected 23 tools for everyday preset, got %d: %v", len(names), names)
 	}
 	for _, expected := range []string{
 		"gmail_modify_message_labels",
@@ -311,6 +314,8 @@ func TestEverydayPresetSurface(t *testing.T) {
 		"tasks_get_task",
 		"tasks_create_task",
 		"tasks_update_task",
+		"tasks_list_tasklists",
+		"tasks_create_tasklist",
 	} {
 		if !names[expected] {
 			t.Errorf("expected everyday tool %q", expected)
@@ -322,8 +327,8 @@ func TestEverydayPresetSurface(t *testing.T) {
 	if names["sheets_list_spreadsheets"] {
 		t.Error("sheets_list_spreadsheets is extended — not on everyday core")
 	}
-	if names["tasks_list_tasklists"] {
-		t.Error("tasks_list_tasklists is complete — not on everyday core")
+	if names["tasks_delete_tasklist"] {
+		t.Error("tasks_delete_tasklist is complete — not on everyday core")
 	}
 }
 
@@ -665,8 +670,11 @@ func TestToolsTasksFiltering(t *testing.T) {
 	// --tools tasks --tool-tier core: 4 core Tasks tools (tasks_get_task, tasks_list_tasks, tasks_create_task, tasks_update_task).
 	s2 := newTestServer(t, server.Config{Tools: []string{"tasks"}, ToolTier: "core"})
 	names2 := registeredToolNames(t, s2)
-	if len(names2) != 4 {
-		t.Errorf("expected 4 tools with --tools tasks --tool-tier core, got %d: %v", len(names2), names2)
+	if len(names2) != 6 {
+		t.Errorf("expected 6 tools with --tools tasks --tool-tier core, got %d: %v", len(names2), names2)
+	}
+	if !names2["tasks_create_tasklist"] {
+		t.Error("expected tasks_create_tasklist with --tools tasks --tool-tier core")
 	}
 
 	// --tools tasks --read-only: 4 Tasks read-only tools (tasks_get_task, tasks_list_tasks, tasks_list_tasklists, tasks_get_tasklist).

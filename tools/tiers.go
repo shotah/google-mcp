@@ -168,14 +168,15 @@ var tierTools = map[string]map[string][]string{
 			"tasks_list_tasks",
 			"tasks_create_task",
 			"tasks_update_task",
+			// "make me a grocery list" needs a new list — everyday assistant path.
+			"tasks_list_tasklists",
+			"tasks_create_tasklist",
 		},
 		"extended": {
 			"tasks_delete_task",
 		},
 		"complete": {
-			"tasks_list_tasklists",
 			"tasks_get_tasklist",
-			"tasks_create_tasklist",
 			"tasks_update_tasklist",
 			"tasks_delete_tasklist",
 			"tasks_move_task",
