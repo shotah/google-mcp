@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// --- search_docs ---
+// --- docs_search ---
 
 func TestDocsMockSearchDocs(t *testing.T) {
 	t.Run("success_with_results", func(t *testing.T) {
@@ -50,7 +50,7 @@ func TestDocsMockSearchDocs(t *testing.T) {
 	})
 }
 
-// --- create_doc ---
+// --- docs_create ---
 
 func TestDocsMockCreateDoc(t *testing.T) {
 	t.Run("success_with_content", func(t *testing.T) {
@@ -104,7 +104,7 @@ func TestDocsMockCreateDoc(t *testing.T) {
 	})
 }
 
-// --- get_doc_content ---
+// --- docs_get_content ---
 
 func TestDocsMockGetDocContent(t *testing.T) {
 	t.Run("success_google_doc", func(t *testing.T) {
@@ -166,7 +166,7 @@ func TestDocsMockGetDocContent(t *testing.T) {
 	})
 }
 
-// --- list_docs_in_folder ---
+// --- docs_list_in_folder ---
 
 func TestDocsMockListDocsInFolder(t *testing.T) {
 	t.Run("success_with_docs", func(t *testing.T) {
@@ -204,7 +204,7 @@ func TestDocsMockListDocsInFolder(t *testing.T) {
 	})
 }
 
-// --- inspect_doc_structure ---
+// --- docs_inspect_structure ---
 
 func TestDocsMockInspectDocStructure(t *testing.T) {
 	ts := fakeAPIServer(t, map[string]any{
@@ -232,7 +232,7 @@ func TestDocsMockInspectDocStructure(t *testing.T) {
 	}
 }
 
-// --- modify_doc_text ---
+// --- docs_modify_text ---
 
 func TestDocsMockModifyDocText(t *testing.T) {
 	ts := fakeAPIServer(t, map[string]any{
@@ -253,7 +253,7 @@ func TestDocsMockModifyDocText(t *testing.T) {
 	}
 }
 
-// --- find_and_replace_doc ---
+// --- docs_find_and_replace ---
 
 func TestDocsMockFindAndReplaceDoc(t *testing.T) {
 	ts := fakeAPIServer(t, map[string]any{

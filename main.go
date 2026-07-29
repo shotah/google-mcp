@@ -9,8 +9,8 @@ import (
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
-	"github.com/shotah/google-workspace-mcp-go/server"
-	"github.com/shotah/google-workspace-mcp-go/tools"
+	"github.com/shotah/google-mcp/server"
+	"github.com/shotah/google-mcp/tools"
 )
 
 // validTools is the set of accepted --tools values.
@@ -65,7 +65,7 @@ func run() error {
 
 // parseFlags parses CLI arguments into a server.Config.
 func parseFlags(args []string) (server.Config, error) {
-	fs := flag.NewFlagSet("google-workspace-mcp-go", flag.ContinueOnError)
+	fs := flag.NewFlagSet("google-mcp", flag.ContinueOnError)
 
 	var toolsRaw string
 	fs.StringVar(&toolsRaw, "tools", "", "space-separated list of services to enable (e.g. gmail drive calendar)")

@@ -1,12 +1,14 @@
-# Google Workspace MCP (Go)
+# google-mcp
+
+Google Workspace MCP server (Go)
 
 <p align="center">
-  <a href="https://github.com/shotah/google-workspace-mcp-go/actions/workflows/ci.yml"><img src="https://github.com/shotah/google-workspace-mcp-go/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/shotah/google-workspace-mcp-go/actions/workflows/release.yml"><img src="https://github.com/shotah/google-workspace-mcp-go/actions/workflows/release.yml/badge.svg" alt="Release"></a>
-  <a href="https://github.com/shotah/google-workspace-mcp-go/actions/workflows/ci.yml"><img src="https://github.com/shotah/google-workspace-mcp-go/raw/gh-pages/badges/coverage.svg" alt="Coverage"></a>
-  <a href="https://pkg.go.dev/github.com/shotah/google-workspace-mcp-go"><img src="https://pkg.go.dev/badge/github.com/shotah/google-workspace-mcp-go.svg" alt="Go Reference"></a>
-  <img src="https://img.shields.io/github/go-mod/go-version/shotah/google-workspace-mcp-go" alt="Go version">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/shotah/google-workspace-mcp-go" alt="License"></a>
+  <a href="https://github.com/shotah/google-mcp/actions/workflows/ci.yml"><img src="https://github.com/shotah/google-mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/shotah/google-mcp/actions/workflows/release.yml"><img src="https://github.com/shotah/google-mcp/actions/workflows/release.yml/badge.svg" alt="Release"></a>
+  <a href="https://github.com/shotah/google-mcp/actions/workflows/ci.yml"><img src="https://github.com/shotah/google-mcp/raw/gh-pages/badges/coverage.svg" alt="Coverage"></a>
+  <a href="https://pkg.go.dev/github.com/shotah/google-mcp"><img src="https://pkg.go.dev/badge/github.com/shotah/google-mcp.svg" alt="Go Reference"></a>
+  <img src="https://img.shields.io/github/go-mod/go-version/shotah/google-mcp" alt="Go version">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/shotah/google-mcp" alt="License"></a>
 </p>
 
 <p align="center">
@@ -31,7 +33,7 @@ Built for **local, single-user** AI tool use. Need multi-user OAuth 2.1 or an HT
 ## Why this one
 
 - **Zero runtime** — download a binary (or `go install`) and run; no venv, no `uv`, no dependency churn
-- **Same tool catalog** — 137 tools aligned with the Python reference server
+- **Service-first tool names** — `google__calendar_list_events`, not ambiguous `get_events` (agent clarity over Python string parity)
 - **Agent-friendly filters** — trim context with `--tools` / `--tool-tier`, and constrain writes with `--capability`
 - **Local-first auth** — Desktop OAuth, tokens stored under `~/.google_workspace_mcp/credentials/`
 - **Works where you already work** — Claude Code, Cursor, and any stdio MCP client
@@ -68,26 +70,26 @@ Reuse credentials from the [Python server](https://github.com/taylorwilsdon/goog
 
 ### 2. Install
 
-**Pre-built binary** (no Go required) — grab the archive for your platform from [Releases](https://github.com/shotah/google-workspace-mcp-go/releases):
+**Pre-built binary** (no Go required) — grab the archive for your platform from [Releases](https://github.com/shotah/google-mcp/releases):
 
 | Platform | File |
 | --- | --- |
-| Linux x86_64 | `google-workspace-mcp-go_*_linux_amd64.tar.gz` |
-| Linux ARM64 | `google-workspace-mcp-go_*_linux_arm64.tar.gz` |
-| macOS Apple Silicon | `google-workspace-mcp-go_*_darwin_arm64.tar.gz` |
-| macOS Intel | `google-workspace-mcp-go_*_darwin_amd64.tar.gz` |
-| Windows x86_64 | `google-workspace-mcp-go_*_windows_amd64.zip` |
+| Linux x86_64 | `google-mcp_*_linux_amd64.tar.gz` |
+| Linux ARM64 | `google-mcp_*_linux_arm64.tar.gz` |
+| macOS Apple Silicon | `google-mcp_*_darwin_arm64.tar.gz` |
+| macOS Intel | `google-mcp_*_darwin_amd64.tar.gz` |
+| Windows x86_64 | `google-mcp_*_windows_amd64.zip` |
 
 ```bash
-tar xzf google-workspace-mcp-go_*_linux_amd64.tar.gz
-chmod +x google-workspace-mcp-go
-mv google-workspace-mcp-go ~/.local/bin/
+tar xzf google-mcp_*_linux_amd64.tar.gz
+chmod +x google-mcp
+mv google-mcp ~/.local/bin/
 ```
 
 **Or with Go** (1.26+):
 
 ```bash
-go install github.com/shotah/google-workspace-mcp-go@latest
+go install github.com/shotah/google-mcp@latest
 ```
 
 ### 3. Environment
@@ -102,11 +104,13 @@ export USER_GOOGLE_EMAIL="you@gmail.com"  # optional but recommended
 
 **Recommended** for local agents (small tool surface + everyday edit permissions):
 
+Use server id **`google`** so hosts expose tools as `google__calendar_list_events` (short server + service-prefixed tool).
+
 ```json
 {
   "mcpServers": {
-    "google-workspace": {
-      "command": "google-workspace-mcp-go",
+    "google": {
+      "command": "google-mcp",
       "args": ["--tools", "gmail drive calendar", "--tool-tier", "core", "--capability", "edit"],
       "env": {
         "GOOGLE_OAUTH_CLIENT_ID": "your-client-id.apps.googleusercontent.com",
@@ -123,8 +127,8 @@ If those env vars are already exported in the shell that launches your MCP clien
 ```json
 {
   "mcpServers": {
-    "google-workspace": {
-      "command": "google-workspace-mcp-go",
+    "google": {
+      "command": "google-mcp",
       "args": ["--tools", "gmail drive calendar", "--tool-tier", "core", "--capability", "edit"]
     }
   }
@@ -133,9 +137,9 @@ If those env vars are already exported in the shell that launches your MCP clien
 
 ### 5. Authenticate once
 
-Ask your assistant to call `start_google_auth` with your email. A browser opens, you approve, tokens land in `~/.google_workspace_mcp/credentials/`, and later runs refresh automatically.
+Ask your assistant to call `auth_start` with your email. A browser opens, you approve, tokens land in `~/.google_workspace_mcp/credentials/`, and later runs refresh automatically.
 
-> `start_google_auth` is registered with the `gmail` service. If your `--tools` list omits gmail, add it temporarily for first-time auth.
+> `auth_start` is registered with the `gmail` service. If your `--tools` list omits gmail, add it temporarily for first-time auth.
 
 ## Configuration
 
@@ -164,7 +168,7 @@ Ask your assistant to call `start_google_auth` with your email. A browser opens,
 | `edit` | Everyday create/modify/delete; blocks high-impact ops | 131 |
 | `complete` | Full surface including ownership transfer & bulk deletes | 137 |
 
-Withheld under `edit`: `transfer_drive_ownership`, `batch_delete_contacts`, `delete_task_list`, `delete_contact_group`, `delete_script_project`, `clear_completed_tasks`.
+Withheld under `edit`: `drive_transfer_ownership`, `contacts_batch_delete`, `tasks_delete_tasklist`, `contacts_delete_group`, `appscript_delete_project`, `tasks_clear_completed`.
 
 ### Environment variables
 
@@ -181,18 +185,31 @@ Withheld under `edit`: `transfer_drive_ownership`, `batch_delete_contacts`, `del
 
 `gmail` `drive` `calendar` `docs` `sheets` `slides` `forms` `tasks` `chat` `contacts` `search` `appscript`
 
+### Tool naming
+
+Every tool is `{service}_{verb}_{object}` (snake_case). The MCP server name is `google`, so hosts typically show:
+
+| Intent | Tool |
+| --- | --- |
+| Calendar tomorrow | `google__calendar_list_events` |
+| Add a meeting | `google__calendar_create_event` |
+| Search mail | `google__gmail_search_messages` |
+| Send mail | `google__gmail_send_message` |
+| Task list | `google__tasks_list_tasks` |
+| Chat post | `google__chat_send_message` |
+
 ## When to use Go vs Python
 
 | | This repo (Go) | [Python original](https://github.com/taylorwilsdon/google_workspace_mcp) |
 | --- | --- | --- |
 | Best for | Local Claude Code / Cursor / stdio MCP | Hosted or multi-user deployments |
 | Install | Single binary | Python 3.10+ + deps |
-| Tools | 137 | 137 |
+| Tools | 137 (service-first names) | 137 (legacy names) |
 | Transport | stdio | stdio + streamable HTTP |
 | Auth | OAuth 2.0 (desktop) | OAuth 2.0 + OAuth 2.1 |
 | Multi-user | No | Yes (sessions, Valkey, etc.) |
 
-Same credentials work in both.
+Same credentials work in both. Tool **names** diverge on purpose for agent routing.
 
 ## Tools
 
@@ -203,203 +220,203 @@ Same credentials work in both.
 
 | Tool                                | Tier     | Description                             |
 | ----------------------------------- | -------- | --------------------------------------- |
-| `search_gmail_messages`             | core     | Search messages with Gmail query syntax |
-| `get_gmail_message_content`         | core     | Get full message content                |
-| `get_gmail_messages_content_batch`  | core     | Batch retrieve up to 25 messages        |
-| `send_gmail_message`                | core     | Send email with optional attachments    |
-| `get_gmail_attachment_content`      | extended | Download attachment content             |
-| `get_gmail_thread_content`          | extended | Get full conversation thread            |
-| `modify_gmail_message_labels`       | extended | Add/remove labels from a message        |
-| `list_gmail_labels`                 | extended | List all labels                         |
-| `manage_gmail_label`                | extended | Create, update, or delete labels        |
-| `draft_gmail_message`               | extended | Create draft email                      |
-| `list_gmail_filters`                | extended | List mail filters                       |
-| `create_gmail_filter`               | extended | Create new mail filter                  |
-| `delete_gmail_filter`               | extended | Delete mail filter                      |
-| `get_gmail_threads_content_batch`   | complete | Batch retrieve up to 25 threads         |
-| `batch_modify_gmail_message_labels` | complete | Batch label operations                  |
+| `gmail_search_messages`             | core     | Search messages with Gmail query syntax |
+| `gmail_get_message`         | core     | Get full message content                |
+| `gmail_get_messages_batch`  | core     | Batch retrieve up to 25 messages        |
+| `gmail_send_message`                | core     | Send email with optional attachments    |
+| `gmail_get_attachment`      | extended | Download attachment content             |
+| `gmail_get_thread`          | extended | Get full conversation thread            |
+| `gmail_modify_message_labels`       | extended | Add/remove labels from a message        |
+| `gmail_list_labels`                 | extended | List all labels                         |
+| `gmail_manage_label`                | extended | Create, update, or delete labels        |
+| `gmail_draft_message`               | extended | Create draft email                      |
+| `gmail_list_filters`                | extended | List mail filters                       |
+| `gmail_create_filter`               | extended | Create new mail filter                  |
+| `gmail_delete_filter`               | extended | Delete mail filter                      |
+| `gmail_get_threads_batch`   | complete | Batch retrieve up to 25 threads         |
+| `gmail_batch_modify_message_labels` | complete | Batch label operations                  |
 
 **System tool** (registered with gmail, but not Gmail-specific):
 
 | Tool                | Tier     | Description                       |
 | ------------------- | -------- | --------------------------------- |
-| `start_google_auth` | complete | Trigger OAuth authentication flow |
+| `auth_start` | complete | Trigger OAuth authentication flow |
 
 ### Google Drive (16 tools)
 
 | Tool                             | Tier     | Description                          |
 | -------------------------------- | -------- | ------------------------------------ |
-| `search_drive_files`             | core     | Search files with Drive query syntax |
-| `get_drive_file_content`         | core     | Download file content                |
-| `get_drive_file_download_url`    | core     | Get download URL                     |
-| `create_drive_file`              | core     | Create new file                      |
-| `import_to_google_doc`           | core     | Import file as Google Doc            |
-| `share_drive_file`               | core     | Share file with users                |
-| `get_drive_shareable_link`       | core     | Generate shareable link              |
-| `list_drive_items`               | extended | List files in folder                 |
-| `copy_drive_file`                | extended | Duplicate file                       |
-| `update_drive_file`              | extended | Update file metadata/content         |
-| `update_drive_permission`        | extended | Modify sharing permissions           |
-| `remove_drive_permission`        | extended | Revoke access                        |
-| `transfer_drive_ownership`       | extended | Transfer file ownership              |
-| `batch_share_drive_file`         | extended | Batch sharing                        |
-| `get_drive_file_permissions`     | complete | List all permissions                 |
-| `check_drive_file_public_access` | complete | Check public sharing status          |
+| `drive_search_files`             | core     | Search files with Drive query syntax |
+| `drive_get_file_content`         | core     | Download file content                |
+| `drive_get_file_download_url`    | core     | Get download URL                     |
+| `drive_create_file`              | core     | Create new file                      |
+| `drive_import_to_doc`           | core     | Import file as Google Doc            |
+| `drive_share_file`               | core     | Share file with users                |
+| `drive_get_shareable_link`       | core     | Generate shareable link              |
+| `drive_list_items`               | extended | List files in folder                 |
+| `drive_copy_file`                | extended | Duplicate file                       |
+| `drive_update_file`              | extended | Update file metadata/content         |
+| `drive_update_permission`        | extended | Modify sharing permissions           |
+| `drive_remove_permission`        | extended | Revoke access                        |
+| `drive_transfer_ownership`       | extended | Transfer file ownership              |
+| `drive_batch_share_file`         | extended | Batch sharing                        |
+| `drive_get_file_permissions`     | complete | List all permissions                 |
+| `drive_check_file_public_access` | complete | Check public sharing status          |
 
 ### Google Calendar (6 tools)
 
 | Tool             | Tier     | Description                |
 | ---------------- | -------- | -------------------------- |
-| `list_calendars` | core     | List user's calendars      |
-| `get_events`     | core     | Get events with time range |
-| `create_event`   | core     | Create calendar event      |
-| `modify_event`   | core     | Update event details       |
-| `delete_event`   | core     | Delete event               |
-| `query_freebusy` | extended | Check availability         |
+| `calendar_list_calendars` | core     | List user's calendars      |
+| `calendar_list_events`     | core     | Get events with time range |
+| `calendar_create_event`   | core     | Create calendar event      |
+| `calendar_update_event`   | core     | Update event details       |
+| `calendar_delete_event`   | core     | Delete event               |
+| `calendar_query_freebusy` | extended | Check availability         |
 
 ### Google Docs (19 tools)
 
 | Tool                         | Tier     | Description                 |
 | ---------------------------- | -------- | --------------------------- |
-| `get_doc_content`            | core     | Get document text content   |
-| `create_doc`                 | core     | Create new document         |
-| `modify_doc_text`            | core     | Edit document text          |
-| `export_doc_to_pdf`          | extended | Export as PDF               |
-| `search_docs`                | extended | Search documents            |
-| `find_and_replace_doc`       | extended | Find and replace text       |
-| `list_docs_in_folder`        | extended | List docs in Drive folder   |
-| `insert_doc_elements`        | extended | Insert formatted elements   |
-| `update_paragraph_style`     | extended | Change paragraph formatting |
-| `insert_doc_image`           | complete | Insert image                |
-| `update_doc_headers_footers` | complete | Edit headers/footers        |
-| `batch_update_doc`           | complete | Batch document operations   |
-| `inspect_doc_structure`      | complete | Analyze document structure  |
-| `create_table_with_data`     | complete | Create and populate table   |
-| `debug_table_structure`      | complete | Inspect table layout        |
-| `read_document_comments`     | complete | Read all comments           |
-| `create_document_comment`    | complete | Add comment                 |
-| `reply_to_document_comment`  | complete | Reply to comment            |
-| `resolve_document_comment`   | complete | Resolve comment             |
+| `docs_get_content`            | core     | Get document text content   |
+| `docs_create`                 | core     | Create new document         |
+| `docs_modify_text`            | core     | Edit document text          |
+| `docs_export_to_pdf`          | extended | Export as PDF               |
+| `docs_search`                | extended | Search documents            |
+| `docs_find_and_replace`       | extended | Find and replace text       |
+| `docs_list_in_folder`        | extended | List docs in Drive folder   |
+| `docs_insert_elements`        | extended | Insert formatted elements   |
+| `docs_update_paragraph_style`     | extended | Change paragraph formatting |
+| `docs_insert_image`           | complete | Insert image                |
+| `docs_update_headers_footers` | complete | Edit headers/footers        |
+| `docs_batch_update`           | complete | Batch document operations   |
+| `docs_inspect_structure`      | complete | Analyze document structure  |
+| `docs_create_table_with_data`     | complete | Create and populate table   |
+| `docs_debug_table_structure`      | complete | Inspect table layout        |
+| `docs_read_comments`     | complete | Read all comments           |
+| `docs_create_comment`    | complete | Add comment                 |
+| `docs_reply_to_comment`  | complete | Reply to comment            |
+| `docs_resolve_comment`   | complete | Resolve comment             |
 
 ### Google Sheets (14 tools)
 
 | Tool                            | Tier     | Description                  |
 | ------------------------------- | -------- | ---------------------------- |
-| `create_spreadsheet`            | core     | Create new spreadsheet       |
-| `read_sheet_values`             | core     | Read cell values             |
-| `modify_sheet_values`           | core     | Write/update cells           |
-| `list_spreadsheets`             | extended | List user's spreadsheets     |
-| `get_spreadsheet_info`          | extended | Get spreadsheet metadata     |
-| `create_sheet`                  | complete | Add worksheet tab            |
-| `format_sheet_range`            | complete | Format cell ranges           |
-| `add_conditional_formatting`    | complete | Add conditional format rules |
-| `update_conditional_formatting` | complete | Modify format rules          |
-| `delete_conditional_formatting` | complete | Remove format rules          |
-| `read_spreadsheet_comments`     | complete | Read all comments            |
-| `create_spreadsheet_comment`    | complete | Add comment                  |
-| `reply_to_spreadsheet_comment`  | complete | Reply to comment             |
-| `resolve_spreadsheet_comment`   | complete | Resolve comment              |
+| `sheets_create_spreadsheet`            | core     | Create new spreadsheet       |
+| `sheets_read_values`             | core     | Read cell values             |
+| `sheets_modify_values`           | core     | Write/update cells           |
+| `sheets_list_spreadsheets`             | extended | List user's spreadsheets     |
+| `sheets_get_spreadsheet_info`          | extended | Get spreadsheet metadata     |
+| `sheets_create_sheet`                  | complete | Add worksheet tab            |
+| `sheets_format_range`            | complete | Format cell ranges           |
+| `sheets_add_conditional_formatting`    | complete | Add conditional format rules |
+| `sheets_update_conditional_formatting` | complete | Modify format rules          |
+| `sheets_delete_conditional_formatting` | complete | Remove format rules          |
+| `sheets_read_comments`     | complete | Read all comments            |
+| `sheets_create_comment`    | complete | Add comment                  |
+| `sheets_reply_to_comment`  | complete | Reply to comment             |
+| `sheets_resolve_comment`   | complete | Resolve comment              |
 
 ### Google Slides (9 tools)
 
 | Tool                            | Tier     | Description              |
 | ------------------------------- | -------- | ------------------------ |
-| `create_presentation`           | core     | Create presentation      |
-| `get_presentation`              | core     | Get presentation content |
-| `batch_update_presentation`     | extended | Batch slide operations   |
-| `get_page`                      | extended | Get individual slide     |
-| `get_page_thumbnail`            | extended | Get slide thumbnail      |
-| `read_presentation_comments`    | complete | Read all comments        |
-| `create_presentation_comment`   | complete | Add comment              |
-| `reply_to_presentation_comment` | complete | Reply to comment         |
-| `resolve_presentation_comment`  | complete | Resolve comment          |
+| `slides_create_presentation`           | core     | Create presentation      |
+| `slides_get_presentation`              | core     | Get presentation content |
+| `slides_batch_update`     | extended | Batch slide operations   |
+| `slides_get_page`                      | extended | Get individual slide     |
+| `slides_get_page_thumbnail`            | extended | Get slide thumbnail      |
+| `slides_read_comments`    | complete | Read all comments        |
+| `slides_create_comment`   | complete | Add comment              |
+| `slides_reply_to_comment` | complete | Reply to comment         |
+| `slides_resolve_comment`  | complete | Resolve comment          |
 
 ### Google Forms (6 tools)
 
 | Tool                   | Tier     | Description             |
 | ---------------------- | -------- | ----------------------- |
-| `create_form`          | core     | Create new form         |
-| `get_form`             | core     | Get form details        |
-| `list_form_responses`  | extended | List all responses      |
-| `set_publish_settings` | complete | Configure publishing    |
-| `get_form_response`    | complete | Get individual response |
-| `batch_update_form`    | complete | Batch form updates      |
+| `forms_create`          | core     | Create new form         |
+| `forms_get`             | core     | Get form details        |
+| `forms_list_responses`  | extended | List all responses      |
+| `forms_set_publish_settings` | complete | Configure publishing    |
+| `forms_get_response`    | complete | Get individual response |
+| `forms_batch_update`    | complete | Batch form updates      |
 
 ### Google Tasks (12 tools)
 
 | Tool                    | Tier     | Description             |
 | ----------------------- | -------- | ----------------------- |
-| `get_task`              | core     | Get task details        |
-| `list_tasks`            | core     | List tasks              |
-| `create_task`           | core     | Create task             |
-| `update_task`           | core     | Update task             |
-| `delete_task`           | extended | Delete task             |
-| `list_task_lists`       | complete | List task lists         |
-| `get_task_list`         | complete | Get task list details   |
-| `create_task_list`      | complete | Create task list        |
-| `update_task_list`      | complete | Update task list        |
-| `delete_task_list`      | complete | Delete task list        |
-| `move_task`             | complete | Move task between lists |
-| `clear_completed_tasks` | complete | Clear completed tasks   |
+| `tasks_get_task`              | core     | Get task details        |
+| `tasks_list_tasks`            | core     | List tasks              |
+| `tasks_create_task`           | core     | Create task             |
+| `tasks_update_task`           | core     | Update task             |
+| `tasks_delete_task`           | extended | Delete task             |
+| `tasks_list_tasklists`       | complete | List task lists         |
+| `tasks_get_tasklist`         | complete | Get task list details   |
+| `tasks_create_tasklist`      | complete | Create task list        |
+| `tasks_update_tasklist`      | complete | Update task list        |
+| `tasks_delete_tasklist`      | complete | Delete task list        |
+| `tasks_move_task`             | complete | Move task between lists |
+| `tasks_clear_completed` | complete | Clear completed tasks   |
 
 ### Google Chat (4 tools)
 
 | Tool              | Tier     | Description       |
 | ----------------- | -------- | ----------------- |
-| `send_message`    | core     | Send chat message |
-| `get_messages`    | core     | Get messages      |
-| `search_messages` | core     | Search messages   |
-| `list_spaces`     | extended | List spaces/DMs   |
+| `chat_send_message`    | core     | Send chat message |
+| `chat_list_messages`    | core     | Get messages      |
+| `chat_search_messages` | core     | Search messages   |
+| `chat_list_spaces`     | extended | List spaces/DMs   |
 
 ### Google Contacts (15 tools)
 
 | Tool                           | Tier     | Description          |
 | ------------------------------ | -------- | -------------------- |
-| `search_contacts`              | core     | Search contacts      |
-| `get_contact`                  | core     | Get contact details  |
-| `list_contacts`                | core     | List contacts        |
-| `create_contact`               | core     | Create contact       |
-| `update_contact`               | extended | Update contact       |
-| `delete_contact`               | extended | Delete contact       |
-| `list_contact_groups`          | extended | List contact groups  |
-| `get_contact_group`            | extended | Get group details    |
-| `batch_create_contacts`        | complete | Batch create         |
-| `batch_update_contacts`        | complete | Batch update         |
-| `batch_delete_contacts`        | complete | Batch delete         |
-| `create_contact_group`         | complete | Create group         |
-| `update_contact_group`         | complete | Update group         |
-| `delete_contact_group`         | complete | Delete group         |
-| `modify_contact_group_members` | complete | Manage group members |
+| `contacts_search`              | core     | Search contacts      |
+| `contacts_get`                  | core     | Get contact details  |
+| `contacts_list`                | core     | List contacts        |
+| `contacts_create`               | core     | Create contact       |
+| `contacts_update`               | extended | Update contact       |
+| `contacts_delete`               | extended | Delete contact       |
+| `contacts_list_groups`          | extended | List contact groups  |
+| `contacts_get_group`            | extended | Get group details    |
+| `contacts_batch_create`        | complete | Batch create         |
+| `contacts_batch_update`        | complete | Batch update         |
+| `contacts_batch_delete`        | complete | Batch delete         |
+| `contacts_create_group`         | complete | Create group         |
+| `contacts_update_group`         | complete | Update group         |
+| `contacts_delete_group`         | complete | Delete group         |
+| `contacts_modify_group_members` | complete | Manage group members |
 
 ### Google Custom Search (3 tools)
 
 | Tool                         | Tier     | Description                      |
 | ---------------------------- | -------- | -------------------------------- |
-| `search_custom`              | core     | Programmable Search Engine query |
-| `search_custom_siterestrict` | extended | Site-restricted search           |
-| `get_search_engine_info`     | complete | Get search engine config         |
+| `search_query`              | core     | Programmable Search Engine query |
+| `search_query_siterestrict` | extended | Site-restricted search           |
+| `search_get_engine_info`     | complete | Get search engine config         |
 
 ### Google Apps Script (17 tools)
 
 | Tool                    | Tier     | Description             |
 | ----------------------- | -------- | ----------------------- |
-| `list_script_projects`  | core     | List user's scripts     |
-| `get_script_project`    | core     | Get script metadata     |
-| `get_script_content`    | core     | Get script source code  |
-| `create_script_project` | core     | Create new script       |
-| `update_script_content` | core     | Update script code      |
-| `run_script_function`   | core     | Execute script function |
-| `generate_trigger_code` | core     | Generate trigger code   |
-| `create_deployment`     | extended | Deploy script           |
-| `list_deployments`      | extended | List deployments        |
-| `update_deployment`     | extended | Update deployment       |
-| `delete_deployment`     | extended | Remove deployment       |
-| `delete_script_project` | extended | Delete script           |
-| `list_versions`         | extended | List versions           |
-| `create_version`        | extended | Create version          |
-| `get_version`           | extended | Get version details     |
-| `list_script_processes` | extended | List running processes  |
-| `get_script_metrics`    | extended | Get script metrics      |
+| `appscript_list_projects`  | core     | List user's scripts     |
+| `appscript_get_project`    | core     | Get script metadata     |
+| `appscript_get_content`    | core     | Get script source code  |
+| `appscript_create_project` | core     | Create new script       |
+| `appscript_update_content` | core     | Update script code      |
+| `appscript_run_function`   | core     | Execute script function |
+| `appscript_generate_trigger_code` | core     | Generate trigger code   |
+| `appscript_create_deployment`     | extended | Deploy script           |
+| `appscript_list_deployments`      | extended | List deployments        |
+| `appscript_update_deployment`     | extended | Update deployment       |
+| `appscript_delete_deployment`     | extended | Remove deployment       |
+| `appscript_delete_project` | extended | Delete script           |
+| `appscript_list_versions`         | extended | List versions           |
+| `appscript_create_version`        | extended | Create version          |
+| `appscript_get_version`           | extended | Get version details     |
+| `appscript_list_processes` | extended | List running processes  |
+| `appscript_get_metrics`    | extended | Get script metrics      |
 
 </details>
 

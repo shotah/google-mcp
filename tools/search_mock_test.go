@@ -22,7 +22,7 @@ func TestSearchMockMissingAPIKey(t *testing.T) {
 		t.Setenv("GOOGLE_PSE_ENGINE_ID", "test-engine")
 
 		s := newToolTestServer(t)
-		text, isError := callTool(t, s, "search_custom", map[string]any{
+		text, isError := callTool(t, s, "search_query", map[string]any{
 			"q":                 "golang testing",
 			"user_google_email": "test@example.com",
 		})
@@ -39,7 +39,7 @@ func TestSearchMockMissingAPIKey(t *testing.T) {
 		t.Setenv("GOOGLE_PSE_ENGINE_ID", "")
 
 		s := newToolTestServer(t)
-		text, isError := callTool(t, s, "search_custom", map[string]any{
+		text, isError := callTool(t, s, "search_query", map[string]any{
 			"q":                 "golang testing",
 			"user_google_email": "test@example.com",
 		})
@@ -52,14 +52,14 @@ func TestSearchMockMissingAPIKey(t *testing.T) {
 	})
 }
 
-// --- get_search_engine_info ---
+// --- search_get_engine_info ---
 
 func TestSearchMockGetSearchEngineInfo(t *testing.T) {
 	t.Run("missing_api_key", func(t *testing.T) {
 		t.Setenv("GOOGLE_PSE_API_KEY", "")
 
 		s := newToolTestServer(t)
-		text, isError := callTool(t, s, "get_search_engine_info", map[string]any{
+		text, isError := callTool(t, s, "search_get_engine_info", map[string]any{
 			"user_google_email": "test@example.com",
 		})
 		if !isError {

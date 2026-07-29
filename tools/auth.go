@@ -9,11 +9,11 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
-	"github.com/shotah/google-workspace-mcp-go/auth"
-	google "github.com/shotah/google-workspace-mcp-go/internal/google"
+	"github.com/shotah/google-mcp/auth"
+	google "github.com/shotah/google-mcp/internal/google"
 )
 
-// RegisterAuthTools registers the start_google_auth meta-tool.
+// RegisterAuthTools registers the auth_start meta-tool.
 // It is filtered out when MCP_ENABLE_OAUTH21=true.
 func RegisterAuthTools(s *mcpserver.MCPServer) {
 	if isOAuth21Enabled() {
@@ -23,7 +23,7 @@ func RegisterAuthTools(s *mcpserver.MCPServer) {
 	store := auth.NewCredentialStore()
 
 	s.AddTool(
-		mcp.NewTool("start_google_auth",
+		mcp.NewTool("auth_start",
 			mcp.WithDescription(
 				"Start legacy Google OAuth (disabled when MCP_ENABLE_OAUTH21=true). Returns auth URL/instructions. Prefer calling any Workspace tool first — auth usually runs automatically. Use to re-auth, switch account, or retry after auth failure. Requires service_name (e.g. Gmail, Google Calendar).",
 			),

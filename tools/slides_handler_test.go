@@ -5,13 +5,13 @@ import (
 	"testing"
 )
 
-// --- create_presentation ---
-// create_presentation has no strictly required params (title defaults,
+// --- slides_create_presentation ---
+// slides_create_presentation has no strictly required params (title defaults,
 // email resolved via env), so the first error path is auth failure.
 
 func TestSlidesHandlerCreatePresentationAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_presentation", nil)
+	text, isError := callTool(t, s, "slides_create_presentation", nil)
 	if !isError {
 		t.Fatal("expected isError=true for auth failure")
 	}
@@ -21,11 +21,11 @@ func TestSlidesHandlerCreatePresentationAuthFailure(t *testing.T) {
 	}
 }
 
-// --- get_presentation ---
+// --- slides_get_presentation ---
 
 func TestSlidesHandlerGetPresentationMissingPresentationID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_presentation", nil)
+	text, isError := callTool(t, s, "slides_get_presentation", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -36,7 +36,7 @@ func TestSlidesHandlerGetPresentationMissingPresentationID(t *testing.T) {
 
 func TestSlidesHandlerGetPresentationAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_presentation", map[string]any{
+	text, isError := callTool(t, s, "slides_get_presentation", map[string]any{
 		"presentation_id": "pres123",
 	})
 	if !isError {
@@ -48,11 +48,11 @@ func TestSlidesHandlerGetPresentationAuthFailure(t *testing.T) {
 	}
 }
 
-// --- batch_update_presentation ---
+// --- slides_batch_update ---
 
 func TestSlidesHandlerBatchUpdatePresentationMissingPresentationID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_update_presentation", nil)
+	text, isError := callTool(t, s, "slides_batch_update", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -63,7 +63,7 @@ func TestSlidesHandlerBatchUpdatePresentationMissingPresentationID(t *testing.T)
 
 func TestSlidesHandlerBatchUpdatePresentationMissingRequests(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_update_presentation", map[string]any{
+	text, isError := callTool(t, s, "slides_batch_update", map[string]any{
 		"presentation_id": "pres123",
 	})
 	if !isError {
@@ -76,7 +76,7 @@ func TestSlidesHandlerBatchUpdatePresentationMissingRequests(t *testing.T) {
 
 func TestSlidesHandlerBatchUpdatePresentationRequestsNotArray(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_update_presentation", map[string]any{
+	text, isError := callTool(t, s, "slides_batch_update", map[string]any{
 		"presentation_id": "pres123",
 		"requests":        "not-an-array",
 	})
@@ -89,11 +89,11 @@ func TestSlidesHandlerBatchUpdatePresentationRequestsNotArray(t *testing.T) {
 	}
 }
 
-// --- get_page ---
+// --- slides_get_page ---
 
 func TestSlidesHandlerGetPageMissingPresentationID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_page", nil)
+	text, isError := callTool(t, s, "slides_get_page", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -104,7 +104,7 @@ func TestSlidesHandlerGetPageMissingPresentationID(t *testing.T) {
 
 func TestSlidesHandlerGetPageMissingPageObjectID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_page", map[string]any{
+	text, isError := callTool(t, s, "slides_get_page", map[string]any{
 		"presentation_id": "pres123",
 	})
 	if !isError {
@@ -115,11 +115,11 @@ func TestSlidesHandlerGetPageMissingPageObjectID(t *testing.T) {
 	}
 }
 
-// --- get_page_thumbnail ---
+// --- slides_get_page_thumbnail ---
 
 func TestSlidesHandlerGetPageThumbnailMissingPresentationID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_page_thumbnail", nil)
+	text, isError := callTool(t, s, "slides_get_page_thumbnail", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -130,7 +130,7 @@ func TestSlidesHandlerGetPageThumbnailMissingPresentationID(t *testing.T) {
 
 func TestSlidesHandlerGetPageThumbnailMissingPageObjectID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_page_thumbnail", map[string]any{
+	text, isError := callTool(t, s, "slides_get_page_thumbnail", map[string]any{
 		"presentation_id": "pres123",
 	})
 	if !isError {
@@ -145,7 +145,7 @@ func TestSlidesHandlerGetPageThumbnailMissingPageObjectID(t *testing.T) {
 
 func TestSlidesHandlerReadPresentationCommentsMissingPresentationID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "read_presentation_comments", nil)
+	text, isError := callTool(t, s, "slides_read_comments", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -156,7 +156,7 @@ func TestSlidesHandlerReadPresentationCommentsMissingPresentationID(t *testing.T
 
 func TestSlidesHandlerCreatePresentationCommentMissingPresentationID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_presentation_comment", nil)
+	text, isError := callTool(t, s, "slides_create_comment", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -167,7 +167,7 @@ func TestSlidesHandlerCreatePresentationCommentMissingPresentationID(t *testing.
 
 func TestSlidesHandlerCreatePresentationCommentMissingContent(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_presentation_comment", map[string]any{
+	text, isError := callTool(t, s, "slides_create_comment", map[string]any{
 		"presentation_id": "pres123",
 	})
 	if !isError {
@@ -180,7 +180,7 @@ func TestSlidesHandlerCreatePresentationCommentMissingContent(t *testing.T) {
 
 func TestSlidesHandlerReplyToPresentationCommentMissingPresentationID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "reply_to_presentation_comment", nil)
+	text, isError := callTool(t, s, "slides_reply_to_comment", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -191,7 +191,7 @@ func TestSlidesHandlerReplyToPresentationCommentMissingPresentationID(t *testing
 
 func TestSlidesHandlerReplyToPresentationCommentMissingCommentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "reply_to_presentation_comment", map[string]any{
+	text, isError := callTool(t, s, "slides_reply_to_comment", map[string]any{
 		"presentation_id": "pres123",
 	})
 	if !isError {
@@ -204,7 +204,7 @@ func TestSlidesHandlerReplyToPresentationCommentMissingCommentID(t *testing.T) {
 
 func TestSlidesHandlerReplyToPresentationCommentMissingReplyContent(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "reply_to_presentation_comment", map[string]any{
+	text, isError := callTool(t, s, "slides_reply_to_comment", map[string]any{
 		"presentation_id": "pres123",
 		"comment_id":      "comment123",
 	})
@@ -218,7 +218,7 @@ func TestSlidesHandlerReplyToPresentationCommentMissingReplyContent(t *testing.T
 
 func TestSlidesHandlerResolvePresentationCommentMissingPresentationID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "resolve_presentation_comment", nil)
+	text, isError := callTool(t, s, "slides_resolve_comment", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -229,7 +229,7 @@ func TestSlidesHandlerResolvePresentationCommentMissingPresentationID(t *testing
 
 func TestSlidesHandlerResolvePresentationCommentMissingCommentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "resolve_presentation_comment", map[string]any{
+	text, isError := callTool(t, s, "slides_resolve_comment", map[string]any{
 		"presentation_id": "pres123",
 	})
 	if !isError {

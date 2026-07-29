@@ -27,7 +27,7 @@ jobs:
         run: go build ./...
 
       - name: Build CLI
-        run: go build -ldflags "-X github.com/shotah/google-workspace-mcp-go/server.ServerVersion=ci" -o bin/google-workspace-mcp-go .
+        run: go build -ldflags "-X github.com/shotah/google-mcp/server.ServerVersion=ci" -o bin/google-mcp .
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8

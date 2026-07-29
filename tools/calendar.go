@@ -11,8 +11,8 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 	calendar "google.golang.org/api/calendar/v3"
 
-	"github.com/shotah/google-workspace-mcp-go/internal/google"
-	"github.com/shotah/google-workspace-mcp-go/server"
+	"github.com/shotah/google-mcp/internal/google"
+	"github.com/shotah/google-mcp/server"
 )
 
 // RegisterCalendarTools registers all Calendar tools with the MCP server.
@@ -65,11 +65,11 @@ func isAllDay(t string) bool {
 	return !strings.Contains(t, "T")
 }
 
-// --- list_calendars ---
+// --- calendar_list_calendars ---
 
 func registerListCalendars(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("list_calendars",
-		mcp.WithDescription("List calendars the user can access (id + name). Use only when you need a non-primary calendar_id. For everyday primary calendar work, skip this and use calendar_id=\"primary\" with get_events / create_event / modify_event."),
+	tool := mcp.NewTool("calendar_list_calendars",
+		mcp.WithDescription("List calendars the user can access (id + name). Use only when you need a non-primary calendar_id. For everyday primary calendar work, skip this and use calendar_id=\"primary\" with calendar_list_events / calendar_create_event / calendar_update_event."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 	)
 	s.AddTool(tool, handleListCalendars(getClient))
@@ -114,13 +114,13 @@ func handleListCalendars(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	}
 }
 
-// --- get_events ---
+// --- calendar_list_events ---
 
 func registerGetEvents(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("get_events",
-		mcp.WithDescription("READ calendar: list events in a time range, or fetch one by event_id. Use for 'what's on my calendar', today/tomorrow, find an event before modify/delete. Day queries: user_google_email + calendar_id=\"primary\" + BOTH time_min and time_max (RFC3339) — do NOT set event_id. Only set event_id when you already have a real Google event id from a prior result. Never put \"primary\", a date, or a time range in event_id. Not for creating events — use create_event."),
+	tool := mcp.NewTool("calendar_list_events",
+		mcp.WithDescription("READ calendar: list events in a time range, or fetch one by event_id. Use for 'what's on my calendar', today/tomorrow, find an event before modify/delete. Day queries: user_google_email + calendar_id=\"primary\" + BOTH time_min and time_max (RFC3339) — do NOT set event_id. Only set event_id when you already have a real Google event id from a prior result. Never put \"primary\", a date, or a time range in event_id. Not for creating events — use calendar_create_event."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
-		mcp.WithString("calendar_id", mcp.Description("The ID of the calendar to query. Use 'primary' for the user's primary calendar. Defaults to 'primary'. Calendar IDs can be obtained using `list_calendars`.")),
+		mcp.WithString("calendar_id", mcp.Description("The ID of the calendar to query. Use 'primary' for the user's primary calendar. Defaults to 'primary'. Calendar IDs can be obtained using `calendar_list_calendars`.")),
 		mcp.WithString("event_id", mcp.Description("Optional. Opaque Google Calendar event id from a previous result. If set, fetches that one event and ignores time_min/time_max. Do not use for day listings — never put 'primary', a date, or a time range here.")),
 		mcp.WithString("time_min", mcp.Description("The start of the time range (inclusive) in RFC3339 format (e.g., '2026-07-28T00:00:00-07:00' or '2026-07-28'). If omitted, defaults to the current time. Ignored if event_id is provided.")),
 		mcp.WithString("time_max", mcp.Description("The end of the time range (exclusive) in RFC3339. Required for clean day queries. If omitted, defaults to 24 hours after time_min (avoids unbounded future birthday spam). Ignored if event_id is provided.")),
@@ -231,11 +231,11 @@ func handleGetEvents(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	}
 }
 
-// --- create_event ---
+// --- calendar_create_event ---
 
 func registerCreateEvent(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("create_event",
-		mcp.WithDescription("CREATE a brand-new calendar event. Use for 'add/schedule/put on my calendar' when nothing exists yet. Required: user_google_email, summary, start_time, end_time (RFC3339). Optional location/description/attendees. Call immediately — do not narrate. NOT modify_event (that needs event_id from get_events). If modify_event errors with event_id required, call this instead."),
+	tool := mcp.NewTool("calendar_create_event",
+		mcp.WithDescription("CREATE a brand-new calendar event. Use for 'add/schedule/put on my calendar' when nothing exists yet. Required: user_google_email, summary, start_time, end_time (RFC3339). Optional location/description/attendees. Call immediately — do not narrate. NOT calendar_update_event (that needs event_id from calendar_list_events). If calendar_update_event errors with event_id required, call this instead."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("summary", mcp.Required(), mcp.Description("Event title.")),
 		mcp.WithString("start_time", mcp.Required(), mcp.Description("Start time (RFC3339, e.g., \"2023-10-27T10:00:00-07:00\" or \"2023-10-27\" for all-day).")),
@@ -440,13 +440,13 @@ func handleCreateEvent(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	}
 }
 
-// --- modify_event ---
+// --- calendar_update_event ---
 
 func registerModifyEvent(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("modify_event",
-		mcp.WithDescription("UPDATE an EXISTING calendar event (location, title, times, description). Required: user_google_email + event_id from get_events (ID: field). Use for 'change my 3pm', 'add address to that event'. After search finds an address for a named event, MUST call this with location before replying. NOT for new events — use create_event. If you lack event_id, get_events first (or create_event if new)."),
+	tool := mcp.NewTool("calendar_update_event",
+		mcp.WithDescription("UPDATE an EXISTING calendar event (location, title, times, description). Required: user_google_email + event_id from calendar_list_events (ID: field). Use for 'change my 3pm', 'add address to that event'. After search finds an address for a named event, MUST call this with location before replying. NOT for new events — use calendar_create_event. If you lack event_id, calendar_list_events first (or calendar_create_event if new)."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
-		mcp.WithString("event_id", mcp.Required(), mcp.Description("Opaque Google event id from get_events (ID: …). Required for updates.")),
+		mcp.WithString("event_id", mcp.Required(), mcp.Description("Opaque Google event id from calendar_list_events (ID: …). Required for updates.")),
 		mcp.WithString("calendar_id", mcp.Description("Calendar ID (default: 'primary').")),
 		mcp.WithString("summary", mcp.Description("New event title.")),
 		mcp.WithString("start_time", mcp.Description("New start time (RFC3339, e.g., \"2023-10-27T10:00:00-07:00\" or \"2023-10-27\" for all-day).")),
@@ -773,11 +773,11 @@ func formatGoogleMeetUpdate(addMeet bool, conferenceData *calendar.ConferenceDat
 	return ""
 }
 
-// --- delete_event ---
+// --- calendar_delete_event ---
 
 func registerDeleteEvent(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("delete_event",
-		mcp.WithDescription("DELETE an existing calendar event. Required: user_google_email + event_id from get_events. Use for 'cancel/remove that event'. Confirm destructive deletes when unclear. Not for creating or editing — use create_event / modify_event."),
+	tool := mcp.NewTool("calendar_delete_event",
+		mcp.WithDescription("DELETE an existing calendar event. Required: user_google_email + event_id from calendar_list_events. Use for 'cancel/remove that event'. Confirm destructive deletes when unclear. Not for creating or editing — use calendar_create_event / calendar_update_event."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("event_id", mcp.Required(), mcp.Description("The ID of the event to delete.")),
 		mcp.WithString("calendar_id", mcp.Description("Calendar ID (default: 'primary').")),
@@ -821,11 +821,11 @@ func handleDeleteEvent(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	}
 }
 
-// --- query_freebusy ---
+// --- calendar_query_freebusy ---
 
 func registerQueryFreebusy(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("query_freebusy",
-		mcp.WithDescription("Free/busy blocks for one or more calendars in a time range. Use for 'am I free Friday afternoon', scheduling across calendars. Prefer get_events when you need event titles/details."),
+	tool := mcp.NewTool("calendar_query_freebusy",
+		mcp.WithDescription("Free/busy blocks for one or more calendars in a time range. Use for 'am I free Friday afternoon', scheduling across calendars. Prefer calendar_list_events when you need event titles/details."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
 		mcp.WithString("time_min", mcp.Required(), mcp.Description("The start of the interval for the query in RFC3339 format (e.g., '2024-05-12T10:00:00Z' or '2024-05-12').")),
 		mcp.WithString("time_max", mcp.Required(), mcp.Description("The end of the interval for the query in RFC3339 format (e.g., '2024-05-12T18:00:00Z' or '2024-05-12').")),

@@ -15,8 +15,8 @@ func TestNew(t *testing.T) {
 
 func TestServerConstants(t *testing.T) {
 	t.Parallel()
-	if ServerName == "" {
-		t.Fatal("ServerName is empty")
+	if ServerName != "google" {
+		t.Fatalf("ServerName = %q, want google", ServerName)
 	}
 	if ServerVersion == "" {
 		t.Fatal("ServerVersion is empty")

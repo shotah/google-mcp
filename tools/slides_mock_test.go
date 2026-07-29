@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// --- create_presentation ---
+// --- slides_create_presentation ---
 
 func TestSlidesMockCreatePresentation(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -38,7 +38,7 @@ func TestSlidesMockCreatePresentation(t *testing.T) {
 	})
 }
 
-// --- get_presentation ---
+// --- slides_get_presentation ---
 
 func TestSlidesMockGetPresentation(t *testing.T) {
 	t.Run("success_with_slides", func(t *testing.T) {

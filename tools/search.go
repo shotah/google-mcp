@@ -13,7 +13,7 @@ import (
 	customsearch "google.golang.org/api/customsearch/v1"
 	"google.golang.org/api/option"
 
-	"github.com/shotah/google-workspace-mcp-go/server"
+	"github.com/shotah/google-mcp/server"
 )
 
 // RegisterSearchTools registers all Search tools with the MCP server.
@@ -112,11 +112,11 @@ func executeSearch(ctx context.Context, email, q string, num, start int, safe st
 	return sb.String(), nil
 }
 
-// --- search_custom ---
+// --- search_query ---
 
 func registerSearchCustom(s *mcpserver.MCPServer) {
-	tool := mcp.NewTool("search_custom",
-		mcp.WithDescription("Web search via Google Programmable Search (Custom Search JSON API). Returns titles, snippets, links. Use for general web lookup. Not Drive/Gmail — use workspace tools. Site-limited: search_custom_siterestrict."),
+	tool := mcp.NewTool("search_query",
+		mcp.WithDescription("Web search via Google Programmable Search (Custom Search JSON API). Returns titles, snippets, links. Use for general web lookup. Not Drive/Gmail — use workspace tools. Site-limited: search_query_siterestrict."),
 		mcp.WithString("user_google_email",
 			mcp.Required(),
 			mcp.Description("The user's Google email address."),
@@ -190,11 +190,11 @@ func handleSearchCustom(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 	return mcp.NewToolResultText(text), nil
 }
 
-// --- get_search_engine_info ---
+// --- search_get_engine_info ---
 
 func registerGetSearchEngineInfo(s *mcpserver.MCPServer) {
-	tool := mcp.NewTool("get_search_engine_info",
-		mcp.WithDescription("Metadata about the configured Programmable Search Engine (cx). Use to verify search setup. Not for running a query — use search_custom."),
+	tool := mcp.NewTool("search_get_engine_info",
+		mcp.WithDescription("Metadata about the configured Programmable Search Engine (cx). Use to verify search setup. Not for running a query — use search_query."),
 		mcp.WithString("user_google_email",
 			mcp.Required(),
 			mcp.Description("The user's Google email address."),
@@ -324,11 +324,11 @@ func valueOrDefault(value, fallback string) string {
 	return value
 }
 
-// --- search_custom_siterestrict ---
+// --- search_query_siterestrict ---
 
 func registerSearchCustomSiterestrict(s *mcpserver.MCPServer) {
-	tool := mcp.NewTool("search_custom_siterestrict",
-		mcp.WithDescription("Web search limited to specific site(s) via Programmable Search. Use for 'search company.com for…'. Broader web: search_custom."),
+	tool := mcp.NewTool("search_query_siterestrict",
+		mcp.WithDescription("Web search limited to specific site(s) via Programmable Search. Use for 'search company.com for…'. Broader web: search_query."),
 		mcp.WithString("user_google_email",
 			mcp.Required(),
 			mcp.Description("The user's Google email address."),

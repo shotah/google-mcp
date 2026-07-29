@@ -9,7 +9,7 @@ import (
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
-	"github.com/shotah/google-workspace-mcp-go/server"
+	"github.com/shotah/google-mcp/server"
 )
 
 // integrationServer creates an MCP server with all tools registered using real
@@ -32,7 +32,7 @@ func integrationServer(t *testing.T) (*mcpserver.MCPServer, string) {
 
 func TestIntegrationSearchGmailMessages(t *testing.T) {
 	s, email := integrationServer(t)
-	text, isError := callTool(t, s, "search_gmail_messages", map[string]any{
+	text, isError := callTool(t, s, "gmail_search_messages", map[string]any{
 		"query":             "in:inbox",
 		"page_size":         1,
 		"user_google_email": email,
@@ -48,7 +48,7 @@ func TestIntegrationSearchGmailMessages(t *testing.T) {
 
 func TestIntegrationListGmailLabels(t *testing.T) {
 	s, email := integrationServer(t)
-	text, isError := callTool(t, s, "list_gmail_labels", map[string]any{
+	text, isError := callTool(t, s, "gmail_list_labels", map[string]any{
 		"user_google_email": email,
 	})
 	if isError {
@@ -63,7 +63,7 @@ func TestIntegrationListGmailLabels(t *testing.T) {
 
 func TestIntegrationSearchDriveFiles(t *testing.T) {
 	s, email := integrationServer(t)
-	text, isError := callTool(t, s, "search_drive_files", map[string]any{
+	text, isError := callTool(t, s, "drive_search_files", map[string]any{
 		"query":             "type:document",
 		"user_google_email": email,
 	})
@@ -80,7 +80,7 @@ func TestIntegrationSearchDriveFiles(t *testing.T) {
 
 func TestIntegrationListCalendars(t *testing.T) {
 	s, email := integrationServer(t)
-	text, isError := callTool(t, s, "list_calendars", map[string]any{
+	text, isError := callTool(t, s, "calendar_list_calendars", map[string]any{
 		"user_google_email": email,
 	})
 	if isError {
@@ -94,7 +94,7 @@ func TestIntegrationListCalendars(t *testing.T) {
 
 func TestIntegrationGetEvents(t *testing.T) {
 	s, email := integrationServer(t)
-	text, isError := callTool(t, s, "get_events", map[string]any{
+	text, isError := callTool(t, s, "calendar_list_events", map[string]any{
 		"time_min":          "2026-01-01T00:00:00Z",
 		"time_max":          "2026-12-31T23:59:59Z",
 		"user_google_email": email,
@@ -112,7 +112,7 @@ func TestIntegrationGetEvents(t *testing.T) {
 
 func TestIntegrationSearchDocs(t *testing.T) {
 	s, email := integrationServer(t)
-	text, isError := callTool(t, s, "search_docs", map[string]any{
+	text, isError := callTool(t, s, "docs_search", map[string]any{
 		"query":             "test",
 		"user_google_email": email,
 	})
@@ -129,7 +129,7 @@ func TestIntegrationSearchDocs(t *testing.T) {
 
 func TestIntegrationListSpreadsheets(t *testing.T) {
 	s, email := integrationServer(t)
-	text, isError := callTool(t, s, "list_spreadsheets", map[string]any{
+	text, isError := callTool(t, s, "sheets_list_spreadsheets", map[string]any{
 		"user_google_email": email,
 	})
 	if isError {
@@ -145,7 +145,7 @@ func TestIntegrationListSpreadsheets(t *testing.T) {
 
 func TestIntegrationListTaskLists(t *testing.T) {
 	s, email := integrationServer(t)
-	text, isError := callTool(t, s, "list_task_lists", map[string]any{
+	text, isError := callTool(t, s, "tasks_list_tasklists", map[string]any{
 		"user_google_email": email,
 	})
 	if isError {
@@ -161,7 +161,7 @@ func TestIntegrationListTaskLists(t *testing.T) {
 
 func TestIntegrationListContacts(t *testing.T) {
 	s, email := integrationServer(t)
-	text, isError := callTool(t, s, "list_contacts", map[string]any{
+	text, isError := callTool(t, s, "contacts_list", map[string]any{
 		"user_google_email": email,
 	})
 	if isError {

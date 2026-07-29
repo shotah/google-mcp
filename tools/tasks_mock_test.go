@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// --- list_task_lists ---
+// --- tasks_list_tasklists ---
 
 func TestTasksMockListTaskLists(t *testing.T) {
 	t.Run("success_with_lists", func(t *testing.T) {
@@ -53,7 +53,7 @@ func TestTasksMockListTaskLists(t *testing.T) {
 	})
 }
 
-// --- create_task_list ---
+// --- tasks_create_tasklist ---
 
 func TestTasksMockCreateTaskList(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -82,7 +82,7 @@ func TestTasksMockCreateTaskList(t *testing.T) {
 	})
 }
 
-// --- list_tasks ---
+// --- tasks_list_tasks ---
 
 func TestTasksMockListTasks(t *testing.T) {
 	t.Run("success_with_tasks", func(t *testing.T) {
@@ -111,7 +111,7 @@ func TestTasksMockListTasks(t *testing.T) {
 	})
 }
 
-// --- create_task ---
+// --- tasks_create_task ---
 
 func TestTasksMockCreateTask(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -141,7 +141,7 @@ func TestTasksMockCreateTask(t *testing.T) {
 	})
 }
 
-// --- get_task ---
+// --- tasks_get_task ---
 
 func TestTasksMockGetTask(t *testing.T) {
 	ts := fakeAPIServer(t, map[string]any{
@@ -170,7 +170,7 @@ func TestTasksMockGetTask(t *testing.T) {
 	}
 }
 
-// --- update_task ---
+// --- tasks_update_task ---
 
 func TestTasksMockUpdateTask(t *testing.T) {
 	ts := driveFakeServer(t, map[string]any{
@@ -204,7 +204,7 @@ func TestTasksMockUpdateTask(t *testing.T) {
 	}
 }
 
-// --- move_task ---
+// --- tasks_move_task ---
 
 func TestTasksMockMoveTask(t *testing.T) {
 	ts := fakeAPIServer(t, map[string]any{

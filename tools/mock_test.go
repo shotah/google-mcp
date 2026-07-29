@@ -89,7 +89,7 @@ func TestMockSearchGmailMessages(t *testing.T) {
 	// Build a CallToolRequest with the required "query" argument.
 	req := mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
-			Name: "search_gmail_messages",
+			Name: "gmail_search_messages",
 			Arguments: map[string]any{
 				"query":             "in:inbox",
 				"user_google_email": "test@example.com",

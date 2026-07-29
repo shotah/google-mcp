@@ -11,41 +11,42 @@ import (
 )
 
 // RegisterCommentTools registers 4 comment management tools for a Google Workspace app.
-// appName is the app type (e.g. "document", "spreadsheet", "presentation").
-// fileIDParam is the parameter name for the file ID (e.g. "document_id", "spreadsheet_id", "presentation_id").
-func RegisterCommentTools(s *mcpserver.MCPServer, getClient httpClientFunc, appName, fileIDParam string) {
+// service is the MCP name prefix (docs, sheets, slides).
+// appName is the human app type (document, spreadsheet, presentation).
+// fileIDParam is the parameter name for the file ID (document_id, spreadsheet_id, presentation_id).
+func RegisterCommentTools(s *mcpserver.MCPServer, getClient httpClientFunc, service, appName, fileIDParam string) {
 	appTitle := titleCase(appName)
 
-	// read_{appName}_comments
+	// {service}_read_comments
 	RegisterTool(s, mcp.NewTool(
-		fmt.Sprintf("read_%s_comments", appName),
+		service+"_read_comments",
 		mcp.WithDescription(fmt.Sprintf("List comments/threads on a Google %s. Required %s. Use for 'show review comments'. Not for file body — use Docs/Sheets/Slides read tools.", appTitle, fileIDParam)),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(fmt.Sprintf("The ID of the Google %s.", appTitle))),
 	), makeReadCommentsHandler(getClient, appName, fileIDParam))
 
-	// create_{appName}_comment
+	// {service}_create_comment
 	RegisterTool(s, mcp.NewTool(
-		fmt.Sprintf("create_%s_comment", appName),
-		mcp.WithDescription(fmt.Sprintf("Add a new comment on a Google %s. Required %s + comment_content. Not a reply — use reply_to_%s_comment.", appTitle, fileIDParam, appName)),
+		service+"_create_comment",
+		mcp.WithDescription(fmt.Sprintf("Add a new comment on a Google %s. Required %s + comment_content. Not a reply — use %s_reply_to_comment.", appTitle, fileIDParam, service)),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(fmt.Sprintf("The ID of the Google %s.", appTitle))),
 		mcp.WithString("comment_content", mcp.Required(), mcp.Description("The content of the comment.")),
 	), makeCreateCommentHandler(getClient, appName, fileIDParam))
 
-	// reply_to_{appName}_comment
+	// {service}_reply_to_comment
 	RegisterTool(s, mcp.NewTool(
-		fmt.Sprintf("reply_to_%s_comment", appName),
-		mcp.WithDescription(fmt.Sprintf("Reply to a comment on a Google %s. Required %s, comment_id, reply_content. comment_id from read_%s_comments.", appTitle, fileIDParam, appName)),
+		service+"_reply_to_comment",
+		mcp.WithDescription(fmt.Sprintf("Reply to a comment on a Google %s. Required %s, comment_id, reply_content. comment_id from %s_read_comments.", appTitle, fileIDParam, service)),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(fmt.Sprintf("The ID of the Google %s.", appTitle))),
 		mcp.WithString("comment_id", mcp.Required(), mcp.Description("The ID of the comment to reply to.")),
 		mcp.WithString("reply_content", mcp.Required(), mcp.Description("The content of the reply.")),
 	), makeReplyToCommentHandler(getClient, appName, fileIDParam))
 
-	// resolve_{appName}_comment
+	// {service}_resolve_comment
 	RegisterTool(s, mcp.NewTool(
-		fmt.Sprintf("resolve_%s_comment", appName),
+		service+"_resolve_comment",
 		mcp.WithDescription(fmt.Sprintf("Resolve (close) a comment on a Google %s. Required %s + comment_id. Confirm when unclear.", appTitle, fileIDParam)),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(fmt.Sprintf("The ID of the Google %s.", appTitle))),

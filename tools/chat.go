@@ -9,8 +9,8 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 	chat "google.golang.org/api/chat/v1"
 
-	"github.com/shotah/google-workspace-mcp-go/internal/google"
-	"github.com/shotah/google-workspace-mcp-go/server"
+	"github.com/shotah/google-mcp/internal/google"
+	"github.com/shotah/google-mcp/server"
 )
 
 // RegisterChatTools registers all Chat tools with the MCP server.
@@ -36,11 +36,11 @@ func newChatService(ctx context.Context, getClient httpClientFunc, email string)
 	return svc, nil
 }
 
-// --- list_spaces ---
+// --- chat_list_spaces ---
 
 func registerListSpaces(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("list_spaces",
-		mcp.WithDescription("List Google Chat spaces (space ids, DMs, rooms). Use for 'which chats do I have' before get_messages or send_message. Not for message search — use search_messages."),
+	tool := mcp.NewTool("chat_list_spaces",
+		mcp.WithDescription("List Google Chat spaces (space ids, DMs, rooms). Use for 'which chats do I have' before chat_list_messages or chat_send_message. Not for message search — use chat_search_messages."),
 		mcp.WithString("user_google_email", mcp.Description("User's Google email address")),
 		mcp.WithNumber("page_size", mcp.Description("Number of spaces to return per page. Defaults to 100.")),
 		mcp.WithString("space_type", mcp.Description("Type of spaces to filter: 'all', 'room', or 'dm'. Defaults to 'all'.")),
@@ -101,11 +101,11 @@ func handleListSpaces(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	}
 }
 
-// --- get_messages ---
+// --- chat_list_messages ---
 
 func registerGetMessages(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("get_messages",
-		mcp.WithDescription("Read messages in a space_id (paginated). Use for 'show recent chat in…'. space_id from list_spaces. Not for sending — use send_message."),
+	tool := mcp.NewTool("chat_list_messages",
+		mcp.WithDescription("Read messages in a space_id (paginated). Use for 'show recent chat in…'. space_id from chat_list_spaces. Not for sending — use chat_send_message."),
 		mcp.WithString("user_google_email", mcp.Description("User's Google email address")),
 		mcp.WithString("space_id", mcp.Required(), mcp.Description("The ID of the Chat space to retrieve messages from")),
 		mcp.WithNumber("page_size", mcp.Description("Number of messages to return per page. Defaults to 50.")),
@@ -182,11 +182,11 @@ func handleGetMessages(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	}
 }
 
-// --- send_message ---
+// --- chat_send_message ---
 
 func registerSendMessage(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("send_message",
-		mcp.WithDescription("POST a message to space_id. Confirm before sending unless user asked to send. Use list_spaces for space_id. Not for reading history — use get_messages."),
+	tool := mcp.NewTool("chat_send_message",
+		mcp.WithDescription("POST a message to space_id. Confirm before sending unless user asked to send. Use chat_list_spaces for space_id. Not for reading history — use chat_list_messages."),
 		mcp.WithString("user_google_email", mcp.Description("User's Google email address")),
 		mcp.WithString("space_id", mcp.Required(), mcp.Description("The ID of the Chat space to send the message to")),
 		mcp.WithString("message_text", mcp.Required(), mcp.Description("The text content of the message to send")),
@@ -238,11 +238,11 @@ func handleSendMessage(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 	}
 }
 
-// --- search_messages ---
+// --- chat_search_messages ---
 
 func registerSearchMessages(s *mcpserver.MCPServer, getClient httpClientFunc) {
-	tool := mcp.NewTool("search_messages",
-		mcp.WithDescription("Search Chat messages by text across spaces. Use for 'find that message about…'. Prefer get_messages for full thread in one space."),
+	tool := mcp.NewTool("chat_search_messages",
+		mcp.WithDescription("Search Chat messages by text across spaces. Use for 'find that message about…'. Prefer chat_list_messages for full thread in one space."),
 		mcp.WithString("user_google_email", mcp.Description("User's Google email address")),
 		mcp.WithString("query", mcp.Required(), mcp.Description("Search query text to find in messages")),
 		mcp.WithString("space_id", mcp.Description("Optional space ID to limit search to a specific space; if not provided, searches all accessible spaces")),

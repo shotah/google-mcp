@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-// --- create_form ---
+// --- forms_create ---
 
 func TestFormsHandlerCreateFormMissingTitle(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_form", nil)
+	text, isError := callTool(t, s, "forms_create", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -20,7 +20,7 @@ func TestFormsHandlerCreateFormMissingTitle(t *testing.T) {
 
 func TestFormsHandlerCreateFormAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_form", map[string]any{
+	text, isError := callTool(t, s, "forms_create", map[string]any{
 		"title": "Test Form",
 	})
 	if !isError {
@@ -32,11 +32,11 @@ func TestFormsHandlerCreateFormAuthFailure(t *testing.T) {
 	}
 }
 
-// --- get_form ---
+// --- forms_get ---
 
 func TestFormsHandlerGetFormMissingFormID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_form", nil)
+	text, isError := callTool(t, s, "forms_get", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -47,7 +47,7 @@ func TestFormsHandlerGetFormMissingFormID(t *testing.T) {
 
 func TestFormsHandlerGetFormAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_form", map[string]any{
+	text, isError := callTool(t, s, "forms_get", map[string]any{
 		"form_id": "form123",
 	})
 	if !isError {
@@ -59,11 +59,11 @@ func TestFormsHandlerGetFormAuthFailure(t *testing.T) {
 	}
 }
 
-// --- set_publish_settings ---
+// --- forms_set_publish_settings ---
 
 func TestFormsHandlerSetPublishSettingsMissingFormID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "set_publish_settings", nil)
+	text, isError := callTool(t, s, "forms_set_publish_settings", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -72,11 +72,11 @@ func TestFormsHandlerSetPublishSettingsMissingFormID(t *testing.T) {
 	}
 }
 
-// --- get_form_response ---
+// --- forms_get_response ---
 
 func TestFormsHandlerGetFormResponseMissingFormID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_form_response", nil)
+	text, isError := callTool(t, s, "forms_get_response", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -87,7 +87,7 @@ func TestFormsHandlerGetFormResponseMissingFormID(t *testing.T) {
 
 func TestFormsHandlerGetFormResponseMissingResponseID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_form_response", map[string]any{
+	text, isError := callTool(t, s, "forms_get_response", map[string]any{
 		"form_id": "form123",
 	})
 	if !isError {
@@ -98,11 +98,11 @@ func TestFormsHandlerGetFormResponseMissingResponseID(t *testing.T) {
 	}
 }
 
-// --- list_form_responses ---
+// --- forms_list_responses ---
 
 func TestFormsHandlerListFormResponsesMissingFormID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "list_form_responses", nil)
+	text, isError := callTool(t, s, "forms_list_responses", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -111,11 +111,11 @@ func TestFormsHandlerListFormResponsesMissingFormID(t *testing.T) {
 	}
 }
 
-// --- batch_update_form ---
+// --- forms_batch_update ---
 
 func TestFormsHandlerBatchUpdateFormMissingFormID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_update_form", nil)
+	text, isError := callTool(t, s, "forms_batch_update", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -126,7 +126,7 @@ func TestFormsHandlerBatchUpdateFormMissingFormID(t *testing.T) {
 
 func TestFormsHandlerBatchUpdateFormMissingRequests(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_update_form", map[string]any{
+	text, isError := callTool(t, s, "forms_batch_update", map[string]any{
 		"form_id": "form123",
 	})
 	if !isError {
@@ -139,7 +139,7 @@ func TestFormsHandlerBatchUpdateFormMissingRequests(t *testing.T) {
 
 func TestFormsHandlerBatchUpdateFormRequestsNotArray(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_update_form", map[string]any{
+	text, isError := callTool(t, s, "forms_batch_update", map[string]any{
 		"form_id":  "form123",
 		"requests": "not-an-array",
 	})

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// --- list_spaces ---
+// --- chat_list_spaces ---
 
 func TestChatMockListSpaces(t *testing.T) {
 	t.Run("success_with_spaces", func(t *testing.T) {
@@ -53,7 +53,7 @@ func TestChatMockListSpaces(t *testing.T) {
 	})
 }
 
-// --- send_message ---
+// --- chat_send_message ---
 
 func TestChatMockSendMessage(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -82,7 +82,7 @@ func TestChatMockSendMessage(t *testing.T) {
 	})
 }
 
-// --- get_messages ---
+// --- chat_list_messages ---
 
 func TestChatMockGetMessages(t *testing.T) {
 	t.Run("success_with_messages", func(t *testing.T) {
@@ -127,7 +127,7 @@ func TestChatMockGetMessages(t *testing.T) {
 	})
 }
 
-// --- search_messages ---
+// --- chat_search_messages ---
 
 func TestChatMockSearchMessages(t *testing.T) {
 	t.Run("space_scoped_success", func(t *testing.T) {

@@ -5,12 +5,12 @@ import (
 	"testing"
 )
 
-// --- list_contacts ---
-// list_contacts has no strictly required params, so first error is auth failure.
+// --- contacts_list ---
+// contacts_list has no strictly required params, so first error is auth failure.
 
 func TestContactsHandlerListContactsAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "list_contacts", nil)
+	text, isError := callTool(t, s, "contacts_list", nil)
 	if !isError {
 		t.Fatal("expected isError=true for auth failure")
 	}
@@ -20,11 +20,11 @@ func TestContactsHandlerListContactsAuthFailure(t *testing.T) {
 	}
 }
 
-// --- get_contact ---
+// --- contacts_get ---
 
 func TestContactsHandlerGetContactMissingContactID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_contact", nil)
+	text, isError := callTool(t, s, "contacts_get", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -35,7 +35,7 @@ func TestContactsHandlerGetContactMissingContactID(t *testing.T) {
 
 func TestContactsHandlerGetContactAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_contact", map[string]any{
+	text, isError := callTool(t, s, "contacts_get", map[string]any{
 		"contact_id": "c1234567890",
 	})
 	if !isError {
@@ -47,11 +47,11 @@ func TestContactsHandlerGetContactAuthFailure(t *testing.T) {
 	}
 }
 
-// --- search_contacts ---
+// --- contacts_search ---
 
 func TestContactsHandlerSearchContactsMissingQuery(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "search_contacts", nil)
+	text, isError := callTool(t, s, "contacts_search", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -60,12 +60,12 @@ func TestContactsHandlerSearchContactsMissingQuery(t *testing.T) {
 	}
 }
 
-// --- list_contact_groups ---
-// list_contact_groups has no strictly required params, so first error is auth failure.
+// --- contacts_list_groups ---
+// contacts_list_groups has no strictly required params, so first error is auth failure.
 
 func TestContactsHandlerListContactGroupsAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "list_contact_groups", nil)
+	text, isError := callTool(t, s, "contacts_list_groups", nil)
 	if !isError {
 		t.Fatal("expected isError=true for auth failure")
 	}
@@ -75,11 +75,11 @@ func TestContactsHandlerListContactGroupsAuthFailure(t *testing.T) {
 	}
 }
 
-// --- get_contact_group ---
+// --- contacts_get_group ---
 
 func TestContactsHandlerGetContactGroupMissingGroupID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_contact_group", nil)
+	text, isError := callTool(t, s, "contacts_get_group", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -88,14 +88,14 @@ func TestContactsHandlerGetContactGroupMissingGroupID(t *testing.T) {
 	}
 }
 
-// --- create_contact ---
-// create_contact has no RequireString params. It calls resolveEmail (succeeds via env),
+// --- contacts_create ---
+// contacts_create has no RequireString params. It calls resolveEmail (succeeds via env),
 // then newPeopleService (auth failure), then buildPersonBody check.
 // Auth failure comes before the buildPersonBody check.
 
 func TestContactsHandlerCreateContactAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_contact", map[string]any{
+	text, isError := callTool(t, s, "contacts_create", map[string]any{
 		"given_name": "Test",
 	})
 	if !isError {
@@ -108,11 +108,11 @@ func TestContactsHandlerCreateContactAuthFailure(t *testing.T) {
 }
 
 func TestContactsHandlerCreateContactNoFields(t *testing.T) {
-	// create_contact with no fields calls newPeopleService first (auth failure),
+	// contacts_create with no fields calls newPeopleService first (auth failure),
 	// then buildPersonBody. Since auth fails first, we can only test auth here.
 	// But let's test that an empty call hits auth before field validation.
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_contact", nil)
+	text, isError := callTool(t, s, "contacts_create", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -123,11 +123,11 @@ func TestContactsHandlerCreateContactNoFields(t *testing.T) {
 	}
 }
 
-// --- update_contact ---
+// --- contacts_update ---
 
 func TestContactsHandlerUpdateContactMissingContactID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "update_contact", nil)
+	text, isError := callTool(t, s, "contacts_update", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -136,11 +136,11 @@ func TestContactsHandlerUpdateContactMissingContactID(t *testing.T) {
 	}
 }
 
-// --- delete_contact ---
+// --- contacts_delete ---
 
 func TestContactsHandlerDeleteContactMissingContactID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "delete_contact", nil)
+	text, isError := callTool(t, s, "contacts_delete", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -149,12 +149,12 @@ func TestContactsHandlerDeleteContactMissingContactID(t *testing.T) {
 	}
 }
 
-// --- batch_create_contacts ---
+// --- contacts_batch_create ---
 // contacts is checked via args type assertion, not RequireString.
 
 func TestContactsHandlerBatchCreateContactsNoContacts(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_create_contacts", nil)
+	text, isError := callTool(t, s, "contacts_batch_create", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -166,7 +166,7 @@ func TestContactsHandlerBatchCreateContactsNoContacts(t *testing.T) {
 
 func TestContactsHandlerBatchCreateContactsEmptyArray(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_create_contacts", map[string]any{
+	text, isError := callTool(t, s, "contacts_batch_create", map[string]any{
 		"contacts": []any{},
 	})
 	if !isError {
@@ -178,11 +178,11 @@ func TestContactsHandlerBatchCreateContactsEmptyArray(t *testing.T) {
 	}
 }
 
-// --- batch_update_contacts ---
+// --- contacts_batch_update ---
 
 func TestContactsHandlerBatchUpdateContactsNoUpdates(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_update_contacts", nil)
+	text, isError := callTool(t, s, "contacts_batch_update", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -192,11 +192,11 @@ func TestContactsHandlerBatchUpdateContactsNoUpdates(t *testing.T) {
 	}
 }
 
-// --- batch_delete_contacts ---
+// --- contacts_batch_delete ---
 
 func TestContactsHandlerBatchDeleteContactsMissingContactIDs(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_delete_contacts", nil)
+	text, isError := callTool(t, s, "contacts_batch_delete", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -207,7 +207,7 @@ func TestContactsHandlerBatchDeleteContactsMissingContactIDs(t *testing.T) {
 
 func TestContactsHandlerBatchDeleteContactsEmptyArray(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_delete_contacts", map[string]any{
+	text, isError := callTool(t, s, "contacts_batch_delete", map[string]any{
 		"contact_ids": []any{},
 	})
 	if !isError {
@@ -219,11 +219,11 @@ func TestContactsHandlerBatchDeleteContactsEmptyArray(t *testing.T) {
 	}
 }
 
-// --- create_contact_group ---
+// --- contacts_create_group ---
 
 func TestContactsHandlerCreateContactGroupMissingName(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_contact_group", nil)
+	text, isError := callTool(t, s, "contacts_create_group", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -232,11 +232,11 @@ func TestContactsHandlerCreateContactGroupMissingName(t *testing.T) {
 	}
 }
 
-// --- update_contact_group ---
+// --- contacts_update_group ---
 
 func TestContactsHandlerUpdateContactGroupMissingGroupID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "update_contact_group", nil)
+	text, isError := callTool(t, s, "contacts_update_group", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -247,7 +247,7 @@ func TestContactsHandlerUpdateContactGroupMissingGroupID(t *testing.T) {
 
 func TestContactsHandlerUpdateContactGroupMissingName(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "update_contact_group", map[string]any{
+	text, isError := callTool(t, s, "contacts_update_group", map[string]any{
 		"group_id": "abc123",
 	})
 	if !isError {
@@ -258,11 +258,11 @@ func TestContactsHandlerUpdateContactGroupMissingName(t *testing.T) {
 	}
 }
 
-// --- delete_contact_group ---
+// --- contacts_delete_group ---
 
 func TestContactsHandlerDeleteContactGroupMissingGroupID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "delete_contact_group", nil)
+	text, isError := callTool(t, s, "contacts_delete_group", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -271,11 +271,11 @@ func TestContactsHandlerDeleteContactGroupMissingGroupID(t *testing.T) {
 	}
 }
 
-// --- modify_contact_group_members ---
+// --- contacts_modify_group_members ---
 
 func TestContactsHandlerModifyContactGroupMembersMissingGroupID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "modify_contact_group_members", nil)
+	text, isError := callTool(t, s, "contacts_modify_group_members", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -286,7 +286,7 @@ func TestContactsHandlerModifyContactGroupMembersMissingGroupID(t *testing.T) {
 
 func TestContactsHandlerModifyContactGroupMembersNoAddOrRemove(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "modify_contact_group_members", map[string]any{
+	text, isError := callTool(t, s, "contacts_modify_group_members", map[string]any{
 		"group_id": "abc123",
 	})
 	if !isError {

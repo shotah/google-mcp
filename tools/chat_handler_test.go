@@ -5,13 +5,13 @@ import (
 	"testing"
 )
 
-// --- list_spaces ---
-// list_spaces has no strictly required params (email resolved via env),
+// --- chat_list_spaces ---
+// chat_list_spaces has no strictly required params (email resolved via env),
 // so the first error path is auth failure.
 
 func TestChatHandlerListSpacesAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "list_spaces", nil)
+	text, isError := callTool(t, s, "chat_list_spaces", nil)
 	if !isError {
 		t.Fatal("expected isError=true for auth failure")
 	}
@@ -21,11 +21,11 @@ func TestChatHandlerListSpacesAuthFailure(t *testing.T) {
 	}
 }
 
-// --- get_messages ---
+// --- chat_list_messages ---
 
 func TestChatHandlerGetMessagesMissingSpaceID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_messages", nil)
+	text, isError := callTool(t, s, "chat_list_messages", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -36,7 +36,7 @@ func TestChatHandlerGetMessagesMissingSpaceID(t *testing.T) {
 
 func TestChatHandlerGetMessagesAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_messages", map[string]any{
+	text, isError := callTool(t, s, "chat_list_messages", map[string]any{
 		"space_id": "spaces/abc123",
 	})
 	if !isError {
@@ -48,11 +48,11 @@ func TestChatHandlerGetMessagesAuthFailure(t *testing.T) {
 	}
 }
 
-// --- send_message ---
+// --- chat_send_message ---
 
 func TestChatHandlerSendMessageMissingSpaceID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "send_message", nil)
+	text, isError := callTool(t, s, "chat_send_message", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -63,7 +63,7 @@ func TestChatHandlerSendMessageMissingSpaceID(t *testing.T) {
 
 func TestChatHandlerSendMessageMissingMessageText(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "send_message", map[string]any{
+	text, isError := callTool(t, s, "chat_send_message", map[string]any{
 		"space_id": "spaces/abc123",
 	})
 	if !isError {
@@ -74,11 +74,11 @@ func TestChatHandlerSendMessageMissingMessageText(t *testing.T) {
 	}
 }
 
-// --- search_messages ---
+// --- chat_search_messages ---
 
 func TestChatHandlerSearchMessagesMissingQuery(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "search_messages", nil)
+	text, isError := callTool(t, s, "chat_search_messages", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -89,7 +89,7 @@ func TestChatHandlerSearchMessagesMissingQuery(t *testing.T) {
 
 func TestChatHandlerSearchMessagesAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "search_messages", map[string]any{
+	text, isError := callTool(t, s, "chat_search_messages", map[string]any{
 		"query": "test message",
 	})
 	if !isError {

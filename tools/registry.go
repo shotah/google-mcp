@@ -9,8 +9,8 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
-	"github.com/shotah/google-workspace-mcp-go/auth"
-	"github.com/shotah/google-workspace-mcp-go/server"
+	"github.com/shotah/google-mcp/auth"
+	"github.com/shotah/google-mcp/server"
 )
 
 // RegisterTool is a helper that wraps mcp.NewTool + server.AddTool.
@@ -79,7 +79,7 @@ func RegisterAllTools(s *mcpserver.MCPServer, cfg server.Config) {
 	}
 
 	// Register meta-tools (not tied to a specific service).
-	// start_google_auth is under gmail/complete in tier config but is
+	// auth_start is under gmail/complete in tier config but is
 	// registered independently. It loads when gmail is enabled or all tools are loaded.
 	if allTools || enabled["gmail"] {
 		RegisterAuthTools(s)

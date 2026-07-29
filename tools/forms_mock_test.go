@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// --- create_form ---
+// --- forms_create ---
 
 func TestFormsMockCreateForm(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -37,7 +37,7 @@ func TestFormsMockCreateForm(t *testing.T) {
 	})
 }
 
-// --- get_form ---
+// --- forms_get ---
 
 func TestFormsMockGetForm(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -80,7 +80,7 @@ func TestFormsMockGetForm(t *testing.T) {
 	})
 }
 
-// --- list_form_responses ---
+// --- forms_list_responses ---
 
 func TestFormsMockListFormResponses(t *testing.T) {
 	t.Run("success_with_responses", func(t *testing.T) {

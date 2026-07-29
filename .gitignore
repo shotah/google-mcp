@@ -1,5 +1,7 @@
 # Built binaries
 /bin/
+/google-mcp
+/google-mcp.exe
 /google-workspace-mcp-go
 /google-workspace-mcp-go.exe
 

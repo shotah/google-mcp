@@ -22,7 +22,7 @@ func sheetsTestServer(t *testing.T, registerFuncs []func(s *mcpserver.MCPServer,
 	return s
 }
 
-// --- list_spreadsheets ---
+// --- sheets_list_spreadsheets ---
 
 func TestSheetsMockListSpreadsheets(t *testing.T) {
 	t.Run("success_with_results", func(t *testing.T) {
@@ -35,7 +35,7 @@ func TestSheetsMockListSpreadsheets(t *testing.T) {
 			}`,
 		})
 		s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerListSpreadsheets}, testClientFunc(ts))
-		text, isError := callTool(t, s, "list_spreadsheets", map[string]any{
+		text, isError := callTool(t, s, "sheets_list_spreadsheets", map[string]any{
 			"user_google_email": "test@example.com",
 		})
 		if isError {
@@ -57,7 +57,7 @@ func TestSheetsMockListSpreadsheets(t *testing.T) {
 			"/drive/v3/files": `{"files":[]}`,
 		})
 		s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerListSpreadsheets}, testClientFunc(ts))
-		text, isError := callTool(t, s, "list_spreadsheets", map[string]any{
+		text, isError := callTool(t, s, "sheets_list_spreadsheets", map[string]any{
 			"user_google_email": "test@example.com",
 		})
 		if isError {
@@ -69,7 +69,7 @@ func TestSheetsMockListSpreadsheets(t *testing.T) {
 	})
 }
 
-// --- create_spreadsheet ---
+// --- sheets_create_spreadsheet ---
 
 func TestSheetsMockCreateSpreadsheet(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestSheetsMockCreateSpreadsheet(t *testing.T) {
 			},
 		})
 		s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerCreateSpreadsheet}, testClientFunc(ts))
-		text, isError := callTool(t, s, "create_spreadsheet", map[string]any{
+		text, isError := callTool(t, s, "sheets_create_spreadsheet", map[string]any{
 			"title":             "New Budget",
 			"user_google_email": "test@example.com",
 		})
@@ -103,7 +103,7 @@ func TestSheetsMockCreateSpreadsheet(t *testing.T) {
 	})
 }
 
-// --- get_spreadsheet_info ---
+// --- sheets_get_spreadsheet_info ---
 
 func TestSheetsMockGetSpreadsheetInfo(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -139,7 +139,7 @@ func TestSheetsMockGetSpreadsheetInfo(t *testing.T) {
 			},
 		})
 		s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerGetSpreadsheetInfo}, testClientFunc(ts))
-		text, isError := callTool(t, s, "get_spreadsheet_info", map[string]any{
+		text, isError := callTool(t, s, "sheets_get_spreadsheet_info", map[string]any{
 			"spreadsheet_id":    "ss001",
 			"user_google_email": "test@example.com",
 		})
@@ -161,7 +161,7 @@ func TestSheetsMockGetSpreadsheetInfo(t *testing.T) {
 	})
 }
 
-// --- read_sheet_values ---
+// --- sheets_read_values ---
 
 func TestSheetsMockReadSheetValues(t *testing.T) {
 	t.Run("success_with_data", func(t *testing.T) {
@@ -176,7 +176,7 @@ func TestSheetsMockReadSheetValues(t *testing.T) {
 			},
 		})
 		s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerReadSheetValues}, testClientFunc(ts))
-		text, isError := callTool(t, s, "read_sheet_values", map[string]any{
+		text, isError := callTool(t, s, "sheets_read_values", map[string]any{
 			"spreadsheet_id":    "ss001",
 			"range_name":        "Sheet1!A1:C3",
 			"user_google_email": "test@example.com",
@@ -199,7 +199,7 @@ func TestSheetsMockReadSheetValues(t *testing.T) {
 			},
 		})
 		s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerReadSheetValues}, testClientFunc(ts))
-		text, isError := callTool(t, s, "read_sheet_values", map[string]any{
+		text, isError := callTool(t, s, "sheets_read_values", map[string]any{
 			"spreadsheet_id":    "ss001",
 			"range_name":        "Sheet1!A1:C3",
 			"user_google_email": "test@example.com",
@@ -213,7 +213,7 @@ func TestSheetsMockReadSheetValues(t *testing.T) {
 	})
 }
 
-// --- modify_sheet_values ---
+// --- sheets_modify_values ---
 
 func TestSheetsMockModifySheetValues(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -224,7 +224,7 @@ func TestSheetsMockModifySheetValues(t *testing.T) {
 			},
 		})
 		s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerModifySheetValues}, testClientFunc(ts))
-		text, isError := callTool(t, s, "modify_sheet_values", map[string]any{
+		text, isError := callTool(t, s, "sheets_modify_values", map[string]any{
 			"spreadsheet_id":    "ss001",
 			"range_name":        "Sheet1!A1:B2",
 			"values":            []any{[]any{"a", "b"}, []any{"c", "d"}},
@@ -239,7 +239,7 @@ func TestSheetsMockModifySheetValues(t *testing.T) {
 	})
 }
 
-// --- format_sheet_range ---
+// --- sheets_format_range ---
 
 func TestSheetsMockFormatSheetRange(t *testing.T) {
 	ts := driveFakeServer(t, map[string]any{
@@ -253,7 +253,7 @@ func TestSheetsMockFormatSheetRange(t *testing.T) {
 		},
 	})
 	s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerFormatSheetRange}, testClientFunc(ts))
-	text, isError := callTool(t, s, "format_sheet_range", map[string]any{
+	text, isError := callTool(t, s, "sheets_format_range", map[string]any{
 		"spreadsheet_id":     "ss001",
 		"range_name":         "Budget!A1:B2",
 		"background_color":   "#FFEECC",
@@ -268,7 +268,7 @@ func TestSheetsMockFormatSheetRange(t *testing.T) {
 	}
 }
 
-// --- add_conditional_formatting ---
+// --- sheets_add_conditional_formatting ---
 
 func TestSheetsMockAddConditionalFormatting(t *testing.T) {
 	ts := driveFakeServer(t, map[string]any{
@@ -282,7 +282,7 @@ func TestSheetsMockAddConditionalFormatting(t *testing.T) {
 		},
 	})
 	s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerAddConditionalFormatting}, testClientFunc(ts))
-	text, isError := callTool(t, s, "add_conditional_formatting", map[string]any{
+	text, isError := callTool(t, s, "sheets_add_conditional_formatting", map[string]any{
 		"spreadsheet_id":    "ss001",
 		"range_name":        "Budget!B2:B10",
 		"condition_type":    "NUMBER_GREATER",
@@ -305,7 +305,7 @@ func TestSheetsMockCreateSheet(t *testing.T) {
 		}`,
 	})
 	s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerCreateSheet}, testClientFunc(ts))
-	text, isError := callTool(t, s, "create_sheet", map[string]any{
+	text, isError := callTool(t, s, "sheets_create_sheet", map[string]any{
 		"spreadsheet_id":    "ss001",
 		"sheet_name":        "New Tab",
 		"user_google_email": "test@example.com",
@@ -326,7 +326,7 @@ func TestSheetsMockAPIError(t *testing.T) {
 			"/v4/spreadsheets/ss001": {code: 404, body: `{"error": {"code": 404, "message": "Not Found"}}`},
 		})
 		s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerGetSpreadsheetInfo}, testClientFunc(ts))
-		text, isError := callTool(t, s, "get_spreadsheet_info", map[string]any{
+		text, isError := callTool(t, s, "sheets_get_spreadsheet_info", map[string]any{
 			"spreadsheet_id":    "ss001",
 			"user_google_email": "test@example.com",
 		})
@@ -343,7 +343,7 @@ func TestSheetsMockAPIError(t *testing.T) {
 			"/v4/spreadsheets": {code: 500, body: `{"error": {"code": 500, "message": "Internal Server Error"}}`},
 		})
 		s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerCreateSpreadsheet}, testClientFunc(ts))
-		text, isError := callTool(t, s, "create_spreadsheet", map[string]any{
+		text, isError := callTool(t, s, "sheets_create_spreadsheet", map[string]any{
 			"title":             "Bad Sheet",
 			"user_google_email": "test@example.com",
 		})

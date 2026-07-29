@@ -1,4 +1,4 @@
-# google-workspace-mcp-go Makefile — Go training wheels for the Python-brained
+# google-mcp Makefile — Go training wheels for the Python-brained
 #
 # Run `make` or `make help` to see everything.
 # Tip: Go already has great CLI ergonomics; these targets just wrap the common ones.
@@ -11,7 +11,7 @@
 
 # Build-time version stamp (git describe). Release tags are tracked in ./VERSION.
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
-LDFLAGS := -X github.com/shotah/google-workspace-mcp-go/server.ServerVersion=$(VERSION)
+LDFLAGS := -X github.com/shotah/google-mcp/server.ServerVersion=$(VERSION)
 
 # Release bump: patch (default), minor, or major. Or set TAG=v0.2.0 explicitly.
 BUMP ?= patch
@@ -19,7 +19,16 @@ BUMP ?= patch
 # Optional: `make test PKG=./tools/...` or `make coverage PKG=./...`
 PKG ?= ./...
 
-BINARY := google-workspace-mcp-go
+BINARY := google-mcp
+ifeq ($(OS),Windows_NT)
+EXE := .exe
+else
+EXE :=
+endif
+GOBIN_DIR := $(shell go env GOBIN)
+ifeq ($(GOBIN_DIR),)
+GOBIN_DIR := $(shell go env GOPATH)/bin
+endif
 
 ##@ Getting oriented
 
@@ -82,9 +91,9 @@ test-short: ## Unit tests with -short
 test-race: ## Unit tests with the race detector (slower, worth it)
 	go test -race $(PKG)
 
-# Default coverage scope excludes the root main package (CLI mains drag totals down).
+# Default coverage scope excludes CLI mains (cmd/google-mcp, cmd/release).
 # Override: make coverage PKG=./...
-COVERAGE_PKG ?= ./auth/... ./internal/... ./server/... ./tools/... ./cmd/...
+COVERAGE_PKG ?= ./auth/... ./internal/... ./server/... ./tools/...
 
 coverage: ## Tests + coverage report for library packages (writes coverage.out)
 	go test -cover "-coverprofile=coverage.out" -covermode=atomic $(COVERAGE_PKG)
@@ -97,12 +106,12 @@ check: fmt lint test ## Autofix, lint, test (matches pre-commit)
 build: ## Compile all packages (sanity check; no binary kept)
 	go build ./...
 
-cli: ## Build the MCP binary into ./bin/google-workspace-mcp-go
+cli: ## Build the MCP binary into ./bin/google-mcp
 	mkdir -p bin
-	go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY) .
+	go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY)$(EXE) .
 
-install: ## Install binary into $$GOPATH/bin (or $$GOBIN)
-	go install -ldflags "$(LDFLAGS)" .
+install: ## Install binary into $$GOPATH/bin (or $$GOBIN) as google-mcp
+	go build -ldflags "$(LDFLAGS)" -o "$(GOBIN_DIR)/$(BINARY)$(EXE)" .
 
 run: ## Build & run CLI — e.g. make run ARGS="--help"
 	go run -ldflags "$(LDFLAGS)" . $(ARGS)

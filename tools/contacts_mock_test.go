@@ -22,7 +22,7 @@ func contactsTestServer(t *testing.T, registerFuncs []func(s *mcpserver.MCPServe
 	return s
 }
 
-// --- list_contacts ---
+// --- contacts_list ---
 
 func TestContactsMockListContacts(t *testing.T) {
 	t.Run("success_with_contacts", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestContactsMockListContacts(t *testing.T) {
 			},
 		})
 		s := contactsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerListContacts}, testClientFunc(ts))
-		text, isError := callTool(t, s, "list_contacts", map[string]any{
+		text, isError := callTool(t, s, "contacts_list", map[string]any{
 			"user_google_email": "test@example.com",
 		})
 		if isError {
@@ -79,7 +79,7 @@ func TestContactsMockListContacts(t *testing.T) {
 			},
 		})
 		s := contactsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerListContacts}, testClientFunc(ts))
-		text, isError := callTool(t, s, "list_contacts", map[string]any{
+		text, isError := callTool(t, s, "contacts_list", map[string]any{
 			"user_google_email": "test@example.com",
 		})
 		if isError {
@@ -91,7 +91,7 @@ func TestContactsMockListContacts(t *testing.T) {
 	})
 }
 
-// --- create_contact ---
+// --- contacts_create ---
 
 func TestContactsMockCreateContact(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestContactsMockCreateContact(t *testing.T) {
 			},
 		})
 		s := contactsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerCreateContact}, testClientFunc(ts))
-		text, isError := callTool(t, s, "create_contact", map[string]any{
+		text, isError := callTool(t, s, "contacts_create", map[string]any{
 			"given_name":        "Carol",
 			"family_name":       "White",
 			"email":             "carol@example.com",
@@ -124,7 +124,7 @@ func TestContactsMockCreateContact(t *testing.T) {
 	})
 }
 
-// --- list_contact_groups ---
+// --- contacts_list_groups ---
 
 func TestContactsMockListContactGroups(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -137,7 +137,7 @@ func TestContactsMockListContactGroups(t *testing.T) {
 			},
 		})
 		s := contactsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerListContactGroups}, testClientFunc(ts))
-		text, isError := callTool(t, s, "list_contact_groups", map[string]any{
+		text, isError := callTool(t, s, "contacts_list_groups", map[string]any{
 			"user_google_email": "test@example.com",
 		})
 		if isError {
@@ -161,7 +161,7 @@ func TestContactsMockCreateContactGroup(t *testing.T) {
 		},
 	})
 	s := contactsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerCreateContactGroup}, testClientFunc(ts))
-	text, isError := callTool(t, s, "create_contact_group", map[string]any{
+	text, isError := callTool(t, s, "contacts_create_group", map[string]any{
 		"name":              "Project Team",
 		"user_google_email": "test@example.com",
 	})
@@ -183,7 +183,7 @@ func TestContactsMockAPIError(t *testing.T) {
 			"/v1/people/me/connections": {code: 403, body: `{"error": {"code": 403, "message": "Forbidden"}}`},
 		})
 		s := contactsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerListContacts}, testClientFunc(ts))
-		text, isError := callTool(t, s, "list_contacts", map[string]any{
+		text, isError := callTool(t, s, "contacts_list", map[string]any{
 			"user_google_email": "test@example.com",
 		})
 		if !isError {

@@ -568,7 +568,7 @@ func TestGmailFormatMessageContent(t *testing.T) {
 				"--- ATTACHMENTS ---",
 				"1. doc.pdf (application/pdf, 10.0 KB)",
 				"Attachment ID: att1",
-				"get_gmail_attachment_content(message_id='msg101', attachment_id='att1')",
+				"gmail_get_attachment(message_id='msg101', attachment_id='att1')",
 			},
 		},
 		{

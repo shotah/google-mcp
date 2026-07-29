@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// --- list_script_projects ---
+// --- appscript_list_projects ---
 
 func TestAppScriptMockListScriptProjects(t *testing.T) {
 	t.Run("success_with_projects", func(t *testing.T) {
@@ -49,7 +49,7 @@ func TestAppScriptMockListScriptProjects(t *testing.T) {
 	})
 }
 
-// --- create_script_project ---
+// --- appscript_create_project ---
 
 func TestAppScriptMockCreateScriptProject(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -281,7 +281,7 @@ func TestAppScriptMockDeployments(t *testing.T) {
 }
 
 func TestAppScriptMockCreateVersionAndDeleteProject(t *testing.T) {
-	t.Run("create_version", func(t *testing.T) {
+	t.Run("appscript_create_version", func(t *testing.T) {
 		ts := fakeAPIServer(t, map[string]any{
 			"/v1/projects/script001/versions": `{"versionNumber":5,"description":"Release 5","createTime":"2026-02-15T08:00:00Z"}`,
 		})
@@ -303,13 +303,13 @@ func TestAppScriptMockCreateVersionAndDeleteProject(t *testing.T) {
 	})
 }
 
-// --- generate_trigger_code (pure code generation, no API) ---
+// --- appscript_generate_trigger_code (pure code generation, no API) ---
 
 func TestAppScriptMockGenerateTriggerCode(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// This handler doesn't need a fake server — it generates code locally.
 		s := newToolTestServer(t)
-		text, isError := callTool(t, s, "generate_trigger_code", map[string]any{
+		text, isError := callTool(t, s, "appscript_generate_trigger_code", map[string]any{
 			"trigger_type":  "time_daily",
 			"function_name": "sendDailyReport",
 		})

@@ -10,7 +10,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
-	"github.com/shotah/google-workspace-mcp-go/server"
+	"github.com/shotah/google-mcp/server"
 )
 
 // newToolTestServer creates an MCP server with all tools registered, a temp
@@ -97,8 +97,8 @@ func TestHandlerNonexistentTool(t *testing.T) {
 
 func TestHandlerMissingRequiredParam(t *testing.T) {
 	s := newToolTestServer(t)
-	// search_gmail_messages requires "query" param
-	text, isError := callTool(t, s, "search_gmail_messages", nil)
+	// gmail_search_messages requires "query" param
+	text, isError := callTool(t, s, "gmail_search_messages", nil)
 	if !isError {
 		t.Fatal("expected isError=true for missing query param")
 	}

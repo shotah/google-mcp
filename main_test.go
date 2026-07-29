@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/shotah/google-workspace-mcp-go/server"
+	"github.com/shotah/google-mcp/server"
 )
 
 func TestParseFlagsDefaults(t *testing.T) {

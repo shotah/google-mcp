@@ -17,7 +17,7 @@ func calendarFakeServer(t *testing.T, routes map[string]any) *httptest.Server {
 	return driveFakeServer(t, routes) // reuse longest-prefix-first matcher
 }
 
-// --- list_calendars ---
+// --- calendar_list_calendars ---
 
 func TestCalendarMockListCalendars(t *testing.T) {
 	t.Run("success_with_calendars", func(t *testing.T) {
@@ -83,7 +83,7 @@ func TestCalendarMockListCalendars(t *testing.T) {
 	})
 }
 
-// --- get_events ---
+// --- calendar_list_events ---
 
 func TestCalendarMockGetEvents(t *testing.T) {
 	t.Run("success_with_time_range", func(t *testing.T) {
@@ -237,7 +237,7 @@ func TestCalendarMockGetEvents(t *testing.T) {
 	})
 }
 
-// --- create_event ---
+// --- calendar_create_event ---
 
 func TestCalendarMockCreateEvent(t *testing.T) {
 	t.Run("success_simple_event", func(t *testing.T) {
@@ -364,7 +364,7 @@ func TestCalendarMockCreateEvent(t *testing.T) {
 	})
 }
 
-// --- modify_event ---
+// --- calendar_update_event ---
 
 func TestCalendarMockModifyEvent(t *testing.T) {
 	t.Run("success_update_summary", func(t *testing.T) {
@@ -457,7 +457,7 @@ func TestCalendarMockModifyEvent(t *testing.T) {
 	})
 }
 
-// --- delete_event ---
+// --- calendar_delete_event ---
 
 func TestCalendarMockDeleteEvent(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -515,7 +515,7 @@ func TestCalendarMockDeleteEvent(t *testing.T) {
 	})
 }
 
-// --- query_freebusy ---
+// --- calendar_query_freebusy ---
 
 func TestCalendarMockQueryFreebusy(t *testing.T) {
 	t.Run("success_with_busy_periods", func(t *testing.T) {

@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-// --- search_docs ---
+// --- docs_search ---
 
 func TestDocsHandlerSearchDocsMissingQuery(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "search_docs", nil)
+	text, isError := callTool(t, s, "docs_search", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -20,7 +20,7 @@ func TestDocsHandlerSearchDocsMissingQuery(t *testing.T) {
 
 func TestDocsHandlerSearchDocsAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "search_docs", map[string]any{
+	text, isError := callTool(t, s, "docs_search", map[string]any{
 		"query": "test doc",
 	})
 	if !isError {
@@ -32,11 +32,11 @@ func TestDocsHandlerSearchDocsAuthFailure(t *testing.T) {
 	}
 }
 
-// --- get_doc_content ---
+// --- docs_get_content ---
 
 func TestDocsHandlerGetDocContentMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_doc_content", nil)
+	text, isError := callTool(t, s, "docs_get_content", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -47,7 +47,7 @@ func TestDocsHandlerGetDocContentMissingDocumentID(t *testing.T) {
 
 func TestDocsHandlerGetDocContentAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_doc_content", map[string]any{
+	text, isError := callTool(t, s, "docs_get_content", map[string]any{
 		"document_id": "doc123",
 	})
 	if !isError {
@@ -59,13 +59,13 @@ func TestDocsHandlerGetDocContentAuthFailure(t *testing.T) {
 	}
 }
 
-// --- list_docs_in_folder ---
-// list_docs_in_folder has no strictly required params (folder_id defaults to "root"),
+// --- docs_list_in_folder ---
+// docs_list_in_folder has no strictly required params (folder_id defaults to "root"),
 // so the first error path is auth failure.
 
 func TestDocsHandlerListDocsInFolderAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "list_docs_in_folder", nil)
+	text, isError := callTool(t, s, "docs_list_in_folder", nil)
 	if !isError {
 		t.Fatal("expected isError=true for auth failure")
 	}
@@ -75,11 +75,11 @@ func TestDocsHandlerListDocsInFolderAuthFailure(t *testing.T) {
 	}
 }
 
-// --- create_doc ---
+// --- docs_create ---
 
 func TestDocsHandlerCreateDocMissingTitle(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_doc", nil)
+	text, isError := callTool(t, s, "docs_create", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -90,7 +90,7 @@ func TestDocsHandlerCreateDocMissingTitle(t *testing.T) {
 
 func TestDocsHandlerCreateDocAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_doc", map[string]any{
+	text, isError := callTool(t, s, "docs_create", map[string]any{
 		"title": "Test Document",
 	})
 	if !isError {
@@ -102,11 +102,11 @@ func TestDocsHandlerCreateDocAuthFailure(t *testing.T) {
 	}
 }
 
-// --- inspect_doc_structure ---
+// --- docs_inspect_structure ---
 
 func TestDocsHandlerInspectDocStructureMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "inspect_doc_structure", nil)
+	text, isError := callTool(t, s, "docs_inspect_structure", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -115,11 +115,11 @@ func TestDocsHandlerInspectDocStructureMissingDocumentID(t *testing.T) {
 	}
 }
 
-// --- debug_table_structure ---
+// --- docs_debug_table_structure ---
 
 func TestDocsHandlerDebugTableStructureMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "debug_table_structure", nil)
+	text, isError := callTool(t, s, "docs_debug_table_structure", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -128,11 +128,11 @@ func TestDocsHandlerDebugTableStructureMissingDocumentID(t *testing.T) {
 	}
 }
 
-// --- export_doc_to_pdf ---
+// --- docs_export_to_pdf ---
 
 func TestDocsHandlerExportDocToPDFMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "export_doc_to_pdf", nil)
+	text, isError := callTool(t, s, "docs_export_to_pdf", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -141,11 +141,11 @@ func TestDocsHandlerExportDocToPDFMissingDocumentID(t *testing.T) {
 	}
 }
 
-// --- modify_doc_text ---
+// --- docs_modify_text ---
 
 func TestDocsHandlerModifyDocTextMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "modify_doc_text", nil)
+	text, isError := callTool(t, s, "docs_modify_text", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -156,7 +156,7 @@ func TestDocsHandlerModifyDocTextMissingDocumentID(t *testing.T) {
 
 func TestDocsHandlerModifyDocTextMissingTextAndFormatting(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "modify_doc_text", map[string]any{
+	text, isError := callTool(t, s, "docs_modify_text", map[string]any{
 		"document_id": "doc123",
 		"start_index": 1,
 	})
@@ -169,11 +169,11 @@ func TestDocsHandlerModifyDocTextMissingTextAndFormatting(t *testing.T) {
 	}
 }
 
-// --- find_and_replace_doc ---
+// --- docs_find_and_replace ---
 
 func TestDocsHandlerFindAndReplaceDocMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "find_and_replace_doc", nil)
+	text, isError := callTool(t, s, "docs_find_and_replace", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -184,7 +184,7 @@ func TestDocsHandlerFindAndReplaceDocMissingDocumentID(t *testing.T) {
 
 func TestDocsHandlerFindAndReplaceDocMissingFindText(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "find_and_replace_doc", map[string]any{
+	text, isError := callTool(t, s, "docs_find_and_replace", map[string]any{
 		"document_id": "doc123",
 	})
 	if !isError {
@@ -197,7 +197,7 @@ func TestDocsHandlerFindAndReplaceDocMissingFindText(t *testing.T) {
 
 func TestDocsHandlerFindAndReplaceDocMissingReplaceText(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "find_and_replace_doc", map[string]any{
+	text, isError := callTool(t, s, "docs_find_and_replace", map[string]any{
 		"document_id": "doc123",
 		"find_text":   "hello",
 	})
@@ -209,11 +209,11 @@ func TestDocsHandlerFindAndReplaceDocMissingReplaceText(t *testing.T) {
 	}
 }
 
-// --- insert_doc_elements ---
+// --- docs_insert_elements ---
 
 func TestDocsHandlerInsertDocElementsMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "insert_doc_elements", nil)
+	text, isError := callTool(t, s, "docs_insert_elements", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -224,7 +224,7 @@ func TestDocsHandlerInsertDocElementsMissingDocumentID(t *testing.T) {
 
 func TestDocsHandlerInsertDocElementsMissingElementType(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "insert_doc_elements", map[string]any{
+	text, isError := callTool(t, s, "docs_insert_elements", map[string]any{
 		"document_id": "doc123",
 	})
 	if !isError {
@@ -235,11 +235,11 @@ func TestDocsHandlerInsertDocElementsMissingElementType(t *testing.T) {
 	}
 }
 
-// --- insert_doc_image ---
+// --- docs_insert_image ---
 
 func TestDocsHandlerInsertDocImageMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "insert_doc_image", nil)
+	text, isError := callTool(t, s, "docs_insert_image", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -250,7 +250,7 @@ func TestDocsHandlerInsertDocImageMissingDocumentID(t *testing.T) {
 
 func TestDocsHandlerInsertDocImageMissingImageSource(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "insert_doc_image", map[string]any{
+	text, isError := callTool(t, s, "docs_insert_image", map[string]any{
 		"document_id": "doc123",
 	})
 	if !isError {
@@ -261,11 +261,11 @@ func TestDocsHandlerInsertDocImageMissingImageSource(t *testing.T) {
 	}
 }
 
-// --- update_doc_headers_footers ---
+// --- docs_update_headers_footers ---
 
 func TestDocsHandlerUpdateDocHeadersFootersMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "update_doc_headers_footers", nil)
+	text, isError := callTool(t, s, "docs_update_headers_footers", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -276,7 +276,7 @@ func TestDocsHandlerUpdateDocHeadersFootersMissingDocumentID(t *testing.T) {
 
 func TestDocsHandlerUpdateDocHeadersFootersMissingSectionType(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "update_doc_headers_footers", map[string]any{
+	text, isError := callTool(t, s, "docs_update_headers_footers", map[string]any{
 		"document_id": "doc123",
 	})
 	if !isError {
@@ -289,7 +289,7 @@ func TestDocsHandlerUpdateDocHeadersFootersMissingSectionType(t *testing.T) {
 
 func TestDocsHandlerUpdateDocHeadersFootersMissingContent(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "update_doc_headers_footers", map[string]any{
+	text, isError := callTool(t, s, "docs_update_headers_footers", map[string]any{
 		"document_id":  "doc123",
 		"section_type": "header",
 	})
@@ -301,11 +301,11 @@ func TestDocsHandlerUpdateDocHeadersFootersMissingContent(t *testing.T) {
 	}
 }
 
-// --- batch_update_doc ---
+// --- docs_batch_update ---
 
 func TestDocsHandlerBatchUpdateDocMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_update_doc", nil)
+	text, isError := callTool(t, s, "docs_batch_update", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -316,7 +316,7 @@ func TestDocsHandlerBatchUpdateDocMissingDocumentID(t *testing.T) {
 
 func TestDocsHandlerBatchUpdateDocMissingOperations(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_update_doc", map[string]any{
+	text, isError := callTool(t, s, "docs_batch_update", map[string]any{
 		"document_id": "doc123",
 	})
 	if !isError {
@@ -327,11 +327,11 @@ func TestDocsHandlerBatchUpdateDocMissingOperations(t *testing.T) {
 	}
 }
 
-// --- create_table_with_data ---
+// --- docs_create_table_with_data ---
 
 func TestDocsHandlerCreateTableWithDataMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_table_with_data", nil)
+	text, isError := callTool(t, s, "docs_create_table_with_data", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -342,7 +342,7 @@ func TestDocsHandlerCreateTableWithDataMissingDocumentID(t *testing.T) {
 
 func TestDocsHandlerCreateTableWithDataMissingTableData(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_table_with_data", map[string]any{
+	text, isError := callTool(t, s, "docs_create_table_with_data", map[string]any{
 		"document_id": "doc123",
 		"index":       1,
 	})
@@ -354,11 +354,11 @@ func TestDocsHandlerCreateTableWithDataMissingTableData(t *testing.T) {
 	}
 }
 
-// --- update_paragraph_style ---
+// --- docs_update_paragraph_style ---
 
 func TestDocsHandlerUpdateParagraphStyleMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "update_paragraph_style", nil)
+	text, isError := callTool(t, s, "docs_update_paragraph_style", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -370,7 +370,7 @@ func TestDocsHandlerUpdateParagraphStyleMissingDocumentID(t *testing.T) {
 func TestDocsHandlerUpdateParagraphStyleInvalidStartIndex(t *testing.T) {
 	s := newToolTestServer(t)
 	// start_index defaults to 0 via GetInt, which is < 1 → validation error
-	text, isError := callTool(t, s, "update_paragraph_style", map[string]any{
+	text, isError := callTool(t, s, "docs_update_paragraph_style", map[string]any{
 		"document_id": "doc123",
 	})
 	if !isError {
@@ -385,7 +385,7 @@ func TestDocsHandlerUpdateParagraphStyleInvalidStartIndex(t *testing.T) {
 func TestDocsHandlerUpdateParagraphStyleInvalidEndIndex(t *testing.T) {
 	s := newToolTestServer(t)
 	// end_index defaults to 0 via GetInt, which is <= start_index (1)
-	text, isError := callTool(t, s, "update_paragraph_style", map[string]any{
+	text, isError := callTool(t, s, "docs_update_paragraph_style", map[string]any{
 		"document_id": "doc123",
 		"start_index": 1,
 	})
@@ -402,7 +402,7 @@ func TestDocsHandlerUpdateParagraphStyleInvalidEndIndex(t *testing.T) {
 
 func TestDocsHandlerReadDocumentCommentsMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "read_document_comments", nil)
+	text, isError := callTool(t, s, "docs_read_comments", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -413,7 +413,7 @@ func TestDocsHandlerReadDocumentCommentsMissingDocumentID(t *testing.T) {
 
 func TestDocsHandlerCreateDocumentCommentMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_document_comment", nil)
+	text, isError := callTool(t, s, "docs_create_comment", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -424,7 +424,7 @@ func TestDocsHandlerCreateDocumentCommentMissingDocumentID(t *testing.T) {
 
 func TestDocsHandlerCreateDocumentCommentMissingContent(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_document_comment", map[string]any{
+	text, isError := callTool(t, s, "docs_create_comment", map[string]any{
 		"document_id": "doc123",
 	})
 	if !isError {
@@ -437,7 +437,7 @@ func TestDocsHandlerCreateDocumentCommentMissingContent(t *testing.T) {
 
 func TestDocsHandlerReplyToDocumentCommentMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "reply_to_document_comment", nil)
+	text, isError := callTool(t, s, "docs_reply_to_comment", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -448,7 +448,7 @@ func TestDocsHandlerReplyToDocumentCommentMissingDocumentID(t *testing.T) {
 
 func TestDocsHandlerReplyToDocumentCommentMissingCommentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "reply_to_document_comment", map[string]any{
+	text, isError := callTool(t, s, "docs_reply_to_comment", map[string]any{
 		"document_id": "doc123",
 	})
 	if !isError {
@@ -461,7 +461,7 @@ func TestDocsHandlerReplyToDocumentCommentMissingCommentID(t *testing.T) {
 
 func TestDocsHandlerResolveDocumentCommentMissingDocumentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "resolve_document_comment", nil)
+	text, isError := callTool(t, s, "docs_resolve_comment", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}

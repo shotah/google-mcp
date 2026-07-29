@@ -59,7 +59,7 @@ func driveFakeServer(t *testing.T, routes map[string]any) *httptest.Server {
 	return ts
 }
 
-// --- search_drive_files ---
+// --- drive_search_files ---
 
 func TestDriveMockSearchFiles(t *testing.T) {
 	t.Run("success_with_results", func(t *testing.T) {
@@ -127,7 +127,7 @@ func TestDriveMockSearchFiles(t *testing.T) {
 	})
 }
 
-// --- get_drive_file_content ---
+// --- drive_get_file_content ---
 
 func TestDriveMockGetFileContent(t *testing.T) {
 	t.Run("success_text_file", func(t *testing.T) {
@@ -186,7 +186,7 @@ func TestDriveMockGetFileContent(t *testing.T) {
 	})
 }
 
-// --- create_drive_file ---
+// --- drive_create_file ---
 
 func TestDriveMockCreateFile(t *testing.T) {
 	t.Run("success_with_content", func(t *testing.T) {
@@ -252,7 +252,7 @@ func TestDriveMockCreateFile(t *testing.T) {
 	})
 }
 
-// --- share_drive_file ---
+// --- drive_share_file ---
 
 func TestDriveMockShareFile(t *testing.T) {
 	t.Run("success_share_with_user", func(t *testing.T) {
@@ -339,7 +339,7 @@ func TestDriveMockShareFile(t *testing.T) {
 	})
 }
 
-// --- list_drive_items ---
+// --- drive_list_items ---
 
 func TestDriveMockListItems(t *testing.T) {
 	t.Run("success_with_items", func(t *testing.T) {
@@ -381,7 +381,7 @@ func TestDriveMockListItems(t *testing.T) {
 	})
 }
 
-// --- get_drive_file_permissions ---
+// --- drive_get_file_permissions ---
 
 func TestDriveMockGetFilePermissions(t *testing.T) {
 	t.Run("success_with_permissions", func(t *testing.T) {
@@ -478,7 +478,7 @@ func TestDriveMockRemovePermission(t *testing.T) {
 	}
 }
 
-// --- update_drive_file ---
+// --- drive_update_file ---
 
 func TestDriveMockUpdateFile(t *testing.T) {
 	t.Run("success_rename", func(t *testing.T) {
@@ -524,7 +524,7 @@ func TestDriveMockUpdateFile(t *testing.T) {
 	})
 }
 
-// --- copy_drive_file ---
+// --- drive_copy_file ---
 
 func TestDriveMockCopyFile(t *testing.T) {
 	t.Run("success_default_name", func(t *testing.T) {
@@ -555,7 +555,7 @@ func TestDriveMockCopyFile(t *testing.T) {
 	})
 }
 
-// --- check_drive_file_public_access ---
+// --- drive_check_file_public_access ---
 
 func TestDriveMockCheckPublicAccess(t *testing.T) {
 	t.Run("success_public_file", func(t *testing.T) {
@@ -615,7 +615,7 @@ func TestDriveMockCheckPublicAccess(t *testing.T) {
 	})
 }
 
-// --- get_drive_shareable_link ---
+// --- drive_get_shareable_link ---
 
 func TestDriveMockGetShareableLink(t *testing.T) {
 	t.Run("success", func(t *testing.T) {

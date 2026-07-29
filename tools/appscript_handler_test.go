@@ -5,12 +5,12 @@ import (
 	"testing"
 )
 
-// --- list_script_projects ---
+// --- appscript_list_projects ---
 // No required params beyond email; first error is auth failure.
 
 func TestAppScriptHandlerListScriptProjectsAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "list_script_projects", nil)
+	text, isError := callTool(t, s, "appscript_list_projects", nil)
 	if !isError {
 		t.Fatal("expected isError=true for auth failure")
 	}
@@ -20,11 +20,11 @@ func TestAppScriptHandlerListScriptProjectsAuthFailure(t *testing.T) {
 	}
 }
 
-// --- get_script_project ---
+// --- appscript_get_project ---
 
 func TestAppScriptHandlerGetScriptProjectMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_script_project", nil)
+	text, isError := callTool(t, s, "appscript_get_project", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -35,7 +35,7 @@ func TestAppScriptHandlerGetScriptProjectMissingScriptID(t *testing.T) {
 
 func TestAppScriptHandlerGetScriptProjectAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_script_project", map[string]any{
+	text, isError := callTool(t, s, "appscript_get_project", map[string]any{
 		"script_id": "abc123",
 	})
 	if !isError {
@@ -47,11 +47,11 @@ func TestAppScriptHandlerGetScriptProjectAuthFailure(t *testing.T) {
 	}
 }
 
-// --- get_script_content ---
+// --- appscript_get_content ---
 
 func TestAppScriptHandlerGetScriptContentMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_script_content", nil)
+	text, isError := callTool(t, s, "appscript_get_content", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -62,7 +62,7 @@ func TestAppScriptHandlerGetScriptContentMissingScriptID(t *testing.T) {
 
 func TestAppScriptHandlerGetScriptContentMissingFileName(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_script_content", map[string]any{
+	text, isError := callTool(t, s, "appscript_get_content", map[string]any{
 		"script_id": "abc123",
 	})
 	if !isError {
@@ -73,11 +73,11 @@ func TestAppScriptHandlerGetScriptContentMissingFileName(t *testing.T) {
 	}
 }
 
-// --- list_deployments ---
+// --- appscript_list_deployments ---
 
 func TestAppScriptHandlerListDeploymentsMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "list_deployments", nil)
+	text, isError := callTool(t, s, "appscript_list_deployments", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -86,12 +86,12 @@ func TestAppScriptHandlerListDeploymentsMissingScriptID(t *testing.T) {
 	}
 }
 
-// --- list_script_processes ---
+// --- appscript_list_processes ---
 // No required params beyond email; first error is auth failure.
 
 func TestAppScriptHandlerListScriptProcessesAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "list_script_processes", nil)
+	text, isError := callTool(t, s, "appscript_list_processes", nil)
 	if !isError {
 		t.Fatal("expected isError=true for auth failure")
 	}
@@ -101,11 +101,11 @@ func TestAppScriptHandlerListScriptProcessesAuthFailure(t *testing.T) {
 	}
 }
 
-// --- list_versions ---
+// --- appscript_list_versions ---
 
 func TestAppScriptHandlerListVersionsMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "list_versions", nil)
+	text, isError := callTool(t, s, "appscript_list_versions", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -114,11 +114,11 @@ func TestAppScriptHandlerListVersionsMissingScriptID(t *testing.T) {
 	}
 }
 
-// --- get_version ---
+// --- appscript_get_version ---
 
 func TestAppScriptHandlerGetVersionMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_version", nil)
+	text, isError := callTool(t, s, "appscript_get_version", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -129,7 +129,7 @@ func TestAppScriptHandlerGetVersionMissingScriptID(t *testing.T) {
 
 func TestAppScriptHandlerGetVersionMissingVersionNumber(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_version", map[string]any{
+	text, isError := callTool(t, s, "appscript_get_version", map[string]any{
 		"script_id": "abc123",
 	})
 	if !isError {
@@ -140,11 +140,11 @@ func TestAppScriptHandlerGetVersionMissingVersionNumber(t *testing.T) {
 	}
 }
 
-// --- get_script_metrics ---
+// --- appscript_get_metrics ---
 
 func TestAppScriptHandlerGetScriptMetricsMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_script_metrics", nil)
+	text, isError := callTool(t, s, "appscript_get_metrics", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -153,11 +153,11 @@ func TestAppScriptHandlerGetScriptMetricsMissingScriptID(t *testing.T) {
 	}
 }
 
-// --- create_script_project ---
+// --- appscript_create_project ---
 
 func TestAppScriptHandlerCreateScriptProjectMissingTitle(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_script_project", nil)
+	text, isError := callTool(t, s, "appscript_create_project", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -166,11 +166,11 @@ func TestAppScriptHandlerCreateScriptProjectMissingTitle(t *testing.T) {
 	}
 }
 
-// --- update_script_content ---
+// --- appscript_update_content ---
 
 func TestAppScriptHandlerUpdateScriptContentMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "update_script_content", nil)
+	text, isError := callTool(t, s, "appscript_update_content", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -181,7 +181,7 @@ func TestAppScriptHandlerUpdateScriptContentMissingScriptID(t *testing.T) {
 
 func TestAppScriptHandlerUpdateScriptContentMissingFiles(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "update_script_content", map[string]any{
+	text, isError := callTool(t, s, "appscript_update_content", map[string]any{
 		"script_id": "abc123",
 	})
 	if !isError {
@@ -192,11 +192,11 @@ func TestAppScriptHandlerUpdateScriptContentMissingFiles(t *testing.T) {
 	}
 }
 
-// --- run_script_function ---
+// --- appscript_run_function ---
 
 func TestAppScriptHandlerRunScriptFunctionMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "run_script_function", nil)
+	text, isError := callTool(t, s, "appscript_run_function", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -207,7 +207,7 @@ func TestAppScriptHandlerRunScriptFunctionMissingScriptID(t *testing.T) {
 
 func TestAppScriptHandlerRunScriptFunctionMissingFunctionName(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "run_script_function", map[string]any{
+	text, isError := callTool(t, s, "appscript_run_function", map[string]any{
 		"script_id": "abc123",
 	})
 	if !isError {
@@ -218,11 +218,11 @@ func TestAppScriptHandlerRunScriptFunctionMissingFunctionName(t *testing.T) {
 	}
 }
 
-// --- create_deployment ---
+// --- appscript_create_deployment ---
 
 func TestAppScriptHandlerCreateDeploymentMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_deployment", nil)
+	text, isError := callTool(t, s, "appscript_create_deployment", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -233,7 +233,7 @@ func TestAppScriptHandlerCreateDeploymentMissingScriptID(t *testing.T) {
 
 func TestAppScriptHandlerCreateDeploymentMissingDescription(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_deployment", map[string]any{
+	text, isError := callTool(t, s, "appscript_create_deployment", map[string]any{
 		"script_id": "abc123",
 	})
 	if !isError {
@@ -244,11 +244,11 @@ func TestAppScriptHandlerCreateDeploymentMissingDescription(t *testing.T) {
 	}
 }
 
-// --- update_deployment ---
+// --- appscript_update_deployment ---
 
 func TestAppScriptHandlerUpdateDeploymentMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "update_deployment", nil)
+	text, isError := callTool(t, s, "appscript_update_deployment", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -259,7 +259,7 @@ func TestAppScriptHandlerUpdateDeploymentMissingScriptID(t *testing.T) {
 
 func TestAppScriptHandlerUpdateDeploymentMissingDeploymentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "update_deployment", map[string]any{
+	text, isError := callTool(t, s, "appscript_update_deployment", map[string]any{
 		"script_id": "abc123",
 	})
 	if !isError {
@@ -270,11 +270,11 @@ func TestAppScriptHandlerUpdateDeploymentMissingDeploymentID(t *testing.T) {
 	}
 }
 
-// --- delete_deployment ---
+// --- appscript_delete_deployment ---
 
 func TestAppScriptHandlerDeleteDeploymentMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "delete_deployment", nil)
+	text, isError := callTool(t, s, "appscript_delete_deployment", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -285,7 +285,7 @@ func TestAppScriptHandlerDeleteDeploymentMissingScriptID(t *testing.T) {
 
 func TestAppScriptHandlerDeleteDeploymentMissingDeploymentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "delete_deployment", map[string]any{
+	text, isError := callTool(t, s, "appscript_delete_deployment", map[string]any{
 		"script_id": "abc123",
 	})
 	if !isError {
@@ -296,11 +296,11 @@ func TestAppScriptHandlerDeleteDeploymentMissingDeploymentID(t *testing.T) {
 	}
 }
 
-// --- delete_script_project ---
+// --- appscript_delete_project ---
 
 func TestAppScriptHandlerDeleteScriptProjectMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "delete_script_project", nil)
+	text, isError := callTool(t, s, "appscript_delete_project", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -309,11 +309,11 @@ func TestAppScriptHandlerDeleteScriptProjectMissingScriptID(t *testing.T) {
 	}
 }
 
-// --- create_version ---
+// --- appscript_create_version ---
 
 func TestAppScriptHandlerCreateVersionMissingScriptID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_version", nil)
+	text, isError := callTool(t, s, "appscript_create_version", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -322,13 +322,13 @@ func TestAppScriptHandlerCreateVersionMissingScriptID(t *testing.T) {
 	}
 }
 
-// --- generate_trigger_code ---
-// generate_trigger_code does NOT require auth — it generates code locally.
+// --- appscript_generate_trigger_code ---
+// appscript_generate_trigger_code does NOT require auth — it generates code locally.
 // It requires trigger_type and function_name.
 
 func TestAppScriptHandlerGenerateTriggerCodeMissingTriggerType(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "generate_trigger_code", nil)
+	text, isError := callTool(t, s, "appscript_generate_trigger_code", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -339,7 +339,7 @@ func TestAppScriptHandlerGenerateTriggerCodeMissingTriggerType(t *testing.T) {
 
 func TestAppScriptHandlerGenerateTriggerCodeMissingFunctionName(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "generate_trigger_code", map[string]any{
+	text, isError := callTool(t, s, "appscript_generate_trigger_code", map[string]any{
 		"trigger_type": "time_daily",
 	})
 	if !isError {
@@ -352,7 +352,7 @@ func TestAppScriptHandlerGenerateTriggerCodeMissingFunctionName(t *testing.T) {
 
 func TestAppScriptHandlerGenerateTriggerCodeSuccess(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "generate_trigger_code", map[string]any{
+	text, isError := callTool(t, s, "appscript_generate_trigger_code", map[string]any{
 		"trigger_type":  "time_daily",
 		"function_name": "myFunction",
 	})

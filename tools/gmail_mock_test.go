@@ -58,7 +58,7 @@ func callHandlerErr(t *testing.T, handler func(context.Context, mcp.CallToolRequ
 	return tc.Text
 }
 
-// --- search_gmail_messages ---
+// --- gmail_search_messages ---
 
 func TestGmailMockSearchMessages(t *testing.T) {
 	t.Run("success_with_results", func(t *testing.T) {
@@ -128,7 +128,7 @@ func TestGmailMockSearchMessages(t *testing.T) {
 	})
 }
 
-// --- get_gmail_message_content ---
+// --- gmail_get_message ---
 
 func TestGmailMockGetMessageContent(t *testing.T) {
 	// Base64url-encode a body for the Gmail API response.
@@ -215,7 +215,7 @@ func TestGmailMockGetMessageContent(t *testing.T) {
 	})
 }
 
-// --- get_gmail_messages_content_batch ---
+// --- gmail_get_messages_batch ---
 
 func TestGmailMockGetMessagesContentBatch(t *testing.T) {
 	bodyB64 := base64.URLEncoding.EncodeToString([]byte("Batch body 1"))
@@ -298,7 +298,7 @@ func TestGmailMockGetMessagesContentBatch(t *testing.T) {
 	})
 }
 
-// --- send_gmail_message ---
+// --- gmail_send_message ---
 
 func TestGmailMockSendMessage(t *testing.T) {
 	t.Run("success_plain_text", func(t *testing.T) {
@@ -324,7 +324,7 @@ func TestGmailMockSendMessage(t *testing.T) {
 	})
 }
 
-// --- draft_gmail_message ---
+// --- gmail_draft_message ---
 
 func TestGmailMockDraftMessage(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -372,7 +372,7 @@ func TestGmailMockDraftMessage(t *testing.T) {
 	})
 }
 
-// --- list_gmail_labels ---
+// --- gmail_list_labels ---
 
 func TestGmailMockListLabels(t *testing.T) {
 	t.Run("success_with_labels", func(t *testing.T) {
@@ -488,7 +488,7 @@ func TestGmailMockAPIError(t *testing.T) {
 	})
 }
 
-// --- get_gmail_thread_content ---
+// --- gmail_get_thread ---
 
 func TestGmailMockGetThreadContent(t *testing.T) {
 	bodyB64 := base64.URLEncoding.EncodeToString([]byte("Thread message body"))
@@ -549,7 +549,7 @@ func TestGmailMockGetThreadContent(t *testing.T) {
 	})
 }
 
-// --- get_gmail_threads_content_batch ---
+// --- gmail_get_threads_batch ---
 
 func TestGmailMockGetThreadsContentBatch(t *testing.T) {
 	bodyB64 := base64.URLEncoding.EncodeToString([]byte("Batch thread body"))
@@ -608,7 +608,7 @@ func TestGmailMockGetThreadsContentBatch(t *testing.T) {
 	})
 }
 
-// --- manage_gmail_label ---
+// --- gmail_manage_label ---
 
 func TestGmailMockManageLabel(t *testing.T) {
 	t.Run("create_success", func(t *testing.T) {
@@ -633,7 +633,7 @@ func TestGmailMockManageLabel(t *testing.T) {
 	})
 }
 
-// --- list_gmail_filters ---
+// --- gmail_list_filters ---
 
 func TestGmailMockListFilters(t *testing.T) {
 	t.Run("success_with_filters", func(t *testing.T) {
@@ -682,7 +682,7 @@ func TestGmailMockListFilters(t *testing.T) {
 	})
 }
 
-// --- create_gmail_filter ---
+// --- gmail_create_filter ---
 
 func TestGmailMockCreateFilter(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -706,7 +706,7 @@ func TestGmailMockCreateFilter(t *testing.T) {
 	})
 }
 
-// --- delete_gmail_filter ---
+// --- gmail_delete_filter ---
 
 func TestGmailMockDeleteFilter(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -735,7 +735,7 @@ func TestGmailMockDeleteFilter(t *testing.T) {
 	})
 }
 
-// --- modify_gmail_message_labels ---
+// --- gmail_modify_message_labels ---
 
 func TestGmailMockModifyMessageLabels(t *testing.T) {
 	t.Run("success_add_and_remove", func(t *testing.T) {
@@ -763,7 +763,7 @@ func TestGmailMockModifyMessageLabels(t *testing.T) {
 	})
 }
 
-// --- batch_modify_gmail_message_labels ---
+// --- gmail_batch_modify_message_labels ---
 
 func TestGmailMockBatchModifyMessageLabels(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -783,7 +783,7 @@ func TestGmailMockBatchModifyMessageLabels(t *testing.T) {
 	})
 }
 
-// --- get_gmail_attachment_content ---
+// --- gmail_get_attachment ---
 
 func TestGmailMockGetAttachmentContent(t *testing.T) {
 	t.Run("success", func(t *testing.T) {

@@ -32,6 +32,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Index module on proxy.golang.org
-        # Makes `go install github.com/shotah/google-workspace-mcp-go@${{ github.ref_name }}` resolve quickly.
+        # Makes `go install github.com/shotah/google-mcp@${{ github.ref_name }}` resolve quickly.
         run: |
-          curl -fsSL "https://proxy.golang.org/github.com/shotah/google-workspace-mcp-go/@v/${GITHUB_REF_NAME}.info" || true
+          curl -fsSL "https://proxy.golang.org/github.com/shotah/google-mcp/@v/${GITHUB_REF_NAME}.info" || true

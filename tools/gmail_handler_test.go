@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-// TestGmailHandlerSearchMissingQuery verifies that search_gmail_messages
+// TestGmailHandlerSearchMissingQuery verifies that gmail_search_messages
 // returns a tool-level error when the required "query" param is missing.
 func TestGmailHandlerSearchMissingQuery(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "search_gmail_messages", nil)
+	text, isError := callTool(t, s, "gmail_search_messages", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -19,10 +19,10 @@ func TestGmailHandlerSearchMissingQuery(t *testing.T) {
 }
 
 // TestGmailHandlerGetMessageContentMissingMessageID verifies that
-// get_gmail_message_content returns error when message_id is missing.
+// gmail_get_message returns error when message_id is missing.
 func TestGmailHandlerGetMessageContentMissingMessageID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_gmail_message_content", nil)
+	text, isError := callTool(t, s, "gmail_get_message", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -32,10 +32,10 @@ func TestGmailHandlerGetMessageContentMissingMessageID(t *testing.T) {
 }
 
 // TestGmailHandlerGetMessagesContentBatchMissingMessageIDs verifies that
-// get_gmail_messages_content_batch returns error when message_ids is missing.
+// gmail_get_messages_batch returns error when message_ids is missing.
 func TestGmailHandlerGetMessagesContentBatchMissingMessageIDs(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_gmail_messages_content_batch", nil)
+	text, isError := callTool(t, s, "gmail_get_messages_batch", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -45,10 +45,10 @@ func TestGmailHandlerGetMessagesContentBatchMissingMessageIDs(t *testing.T) {
 }
 
 // TestGmailHandlerGetMessagesContentBatchEmptyMessageIDs verifies that
-// get_gmail_messages_content_batch returns error when message_ids is empty.
+// gmail_get_messages_batch returns error when message_ids is empty.
 func TestGmailHandlerGetMessagesContentBatchEmptyMessageIDs(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_gmail_messages_content_batch", map[string]any{
+	text, isError := callTool(t, s, "gmail_get_messages_batch", map[string]any{
 		"message_ids": []any{},
 	})
 	if !isError {
@@ -60,10 +60,10 @@ func TestGmailHandlerGetMessagesContentBatchEmptyMessageIDs(t *testing.T) {
 }
 
 // TestGmailHandlerGetAttachmentContentMissingMessageID verifies that
-// get_gmail_attachment_content returns error when message_id is missing.
+// gmail_get_attachment returns error when message_id is missing.
 func TestGmailHandlerGetAttachmentContentMissingMessageID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_gmail_attachment_content", nil)
+	text, isError := callTool(t, s, "gmail_get_attachment", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -73,10 +73,10 @@ func TestGmailHandlerGetAttachmentContentMissingMessageID(t *testing.T) {
 }
 
 // TestGmailHandlerGetAttachmentContentMissingAttachmentID verifies that
-// get_gmail_attachment_content returns error when attachment_id is missing.
+// gmail_get_attachment returns error when attachment_id is missing.
 func TestGmailHandlerGetAttachmentContentMissingAttachmentID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_gmail_attachment_content", map[string]any{
+	text, isError := callTool(t, s, "gmail_get_attachment", map[string]any{
 		"message_id": "abc123",
 	})
 	if !isError {
@@ -88,10 +88,10 @@ func TestGmailHandlerGetAttachmentContentMissingAttachmentID(t *testing.T) {
 }
 
 // TestGmailHandlerGetThreadContentMissingThreadID verifies that
-// get_gmail_thread_content returns error when thread_id is missing.
+// gmail_get_thread returns error when thread_id is missing.
 func TestGmailHandlerGetThreadContentMissingThreadID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_gmail_thread_content", nil)
+	text, isError := callTool(t, s, "gmail_get_thread", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -101,10 +101,10 @@ func TestGmailHandlerGetThreadContentMissingThreadID(t *testing.T) {
 }
 
 // TestGmailHandlerGetThreadsContentBatchMissingThreadIDs verifies that
-// get_gmail_threads_content_batch returns error when thread_ids is missing.
+// gmail_get_threads_batch returns error when thread_ids is missing.
 func TestGmailHandlerGetThreadsContentBatchMissingThreadIDs(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_gmail_threads_content_batch", nil)
+	text, isError := callTool(t, s, "gmail_get_threads_batch", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -114,10 +114,10 @@ func TestGmailHandlerGetThreadsContentBatchMissingThreadIDs(t *testing.T) {
 }
 
 // TestGmailHandlerGetThreadsContentBatchEmptyThreadIDs verifies that
-// get_gmail_threads_content_batch returns error when thread_ids is empty.
+// gmail_get_threads_batch returns error when thread_ids is empty.
 func TestGmailHandlerGetThreadsContentBatchEmptyThreadIDs(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_gmail_threads_content_batch", map[string]any{
+	text, isError := callTool(t, s, "gmail_get_threads_batch", map[string]any{
 		"thread_ids": []any{},
 	})
 	if !isError {
@@ -129,10 +129,10 @@ func TestGmailHandlerGetThreadsContentBatchEmptyThreadIDs(t *testing.T) {
 }
 
 // TestGmailHandlerModifyMessageLabelsMissingMessageID verifies that
-// modify_gmail_message_labels returns error when message_id is missing.
+// gmail_modify_message_labels returns error when message_id is missing.
 func TestGmailHandlerModifyMessageLabelsMissingMessageID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "modify_gmail_message_labels", nil)
+	text, isError := callTool(t, s, "gmail_modify_message_labels", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -142,10 +142,10 @@ func TestGmailHandlerModifyMessageLabelsMissingMessageID(t *testing.T) {
 }
 
 // TestGmailHandlerModifyMessageLabelsMissingBothLabelArrays verifies that
-// modify_gmail_message_labels returns error when neither add nor remove labels provided.
+// gmail_modify_message_labels returns error when neither add nor remove labels provided.
 func TestGmailHandlerModifyMessageLabelsMissingBothLabelArrays(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "modify_gmail_message_labels", map[string]any{
+	text, isError := callTool(t, s, "gmail_modify_message_labels", map[string]any{
 		"message_id": "msg123",
 	})
 	if !isError {
@@ -157,10 +157,10 @@ func TestGmailHandlerModifyMessageLabelsMissingBothLabelArrays(t *testing.T) {
 }
 
 // TestGmailHandlerManageGmailLabelMissingAction verifies that
-// manage_gmail_label returns error when action is missing.
+// gmail_manage_label returns error when action is missing.
 func TestGmailHandlerManageGmailLabelMissingAction(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "manage_gmail_label", nil)
+	text, isError := callTool(t, s, "gmail_manage_label", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -170,12 +170,12 @@ func TestGmailHandlerManageGmailLabelMissingAction(t *testing.T) {
 }
 
 // TestGmailHandlerManageGmailLabelCreateMissingName verifies that
-// manage_gmail_label with action=create returns error when name is missing.
+// gmail_manage_label with action=create returns error when name is missing.
 // Note: the name check happens after auth, so without credentials we get an
 // auth error first. This test verifies the handler still returns an error.
 func TestGmailHandlerManageGmailLabelCreateMissingName(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "manage_gmail_label", map[string]any{
+	text, isError := callTool(t, s, "gmail_manage_label", map[string]any{
 		"action": "create",
 	})
 	if !isError {
@@ -189,10 +189,10 @@ func TestGmailHandlerManageGmailLabelCreateMissingName(t *testing.T) {
 }
 
 // TestGmailHandlerSendGmailMessageMissingTo verifies that
-// send_gmail_message returns error when to is missing.
+// gmail_send_message returns error when to is missing.
 func TestGmailHandlerSendGmailMessageMissingTo(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "send_gmail_message", nil)
+	text, isError := callTool(t, s, "gmail_send_message", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -205,10 +205,10 @@ func TestGmailHandlerSendGmailMessageMissingTo(t *testing.T) {
 }
 
 // TestGmailHandlerSendGmailMessageMissingSubject verifies that
-// send_gmail_message returns error when subject is missing.
+// gmail_send_message returns error when subject is missing.
 func TestGmailHandlerSendGmailMessageMissingSubject(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "send_gmail_message", map[string]any{
+	text, isError := callTool(t, s, "gmail_send_message", map[string]any{
 		"to": "someone@example.com",
 	})
 	if !isError {
@@ -220,10 +220,10 @@ func TestGmailHandlerSendGmailMessageMissingSubject(t *testing.T) {
 }
 
 // TestGmailHandlerSendGmailMessageMissingBody verifies that
-// send_gmail_message returns error when body is missing.
+// gmail_send_message returns error when body is missing.
 func TestGmailHandlerSendGmailMessageMissingBody(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "send_gmail_message", map[string]any{
+	text, isError := callTool(t, s, "gmail_send_message", map[string]any{
 		"to":      "someone@example.com",
 		"subject": "Test Subject",
 	})
@@ -236,10 +236,10 @@ func TestGmailHandlerSendGmailMessageMissingBody(t *testing.T) {
 }
 
 // TestGmailHandlerDraftGmailMessageMissingSubject verifies that
-// draft_gmail_message returns error when subject is missing.
+// gmail_draft_message returns error when subject is missing.
 func TestGmailHandlerDraftGmailMessageMissingSubject(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "draft_gmail_message", nil)
+	text, isError := callTool(t, s, "gmail_draft_message", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -250,10 +250,10 @@ func TestGmailHandlerDraftGmailMessageMissingSubject(t *testing.T) {
 }
 
 // TestGmailHandlerDraftGmailMessageMissingBody verifies that
-// draft_gmail_message returns error when body is missing.
+// gmail_draft_message returns error when body is missing.
 func TestGmailHandlerDraftGmailMessageMissingBody(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "draft_gmail_message", map[string]any{
+	text, isError := callTool(t, s, "gmail_draft_message", map[string]any{
 		"subject": "Test Subject",
 	})
 	if !isError {
@@ -265,10 +265,10 @@ func TestGmailHandlerDraftGmailMessageMissingBody(t *testing.T) {
 }
 
 // TestGmailHandlerBatchModifyMessageLabelsMissingMessageIDs verifies that
-// batch_modify_gmail_message_labels returns error when message_ids is missing.
+// gmail_batch_modify_message_labels returns error when message_ids is missing.
 func TestGmailHandlerBatchModifyMessageLabelsMissingMessageIDs(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_modify_gmail_message_labels", nil)
+	text, isError := callTool(t, s, "gmail_batch_modify_message_labels", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -278,10 +278,10 @@ func TestGmailHandlerBatchModifyMessageLabelsMissingMessageIDs(t *testing.T) {
 }
 
 // TestGmailHandlerBatchModifyMessageLabelsEmptyMessageIDs verifies that
-// batch_modify_gmail_message_labels returns error when message_ids is empty.
+// gmail_batch_modify_message_labels returns error when message_ids is empty.
 func TestGmailHandlerBatchModifyMessageLabelsEmptyMessageIDs(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "batch_modify_gmail_message_labels", map[string]any{
+	text, isError := callTool(t, s, "gmail_batch_modify_message_labels", map[string]any{
 		"message_ids": []any{},
 	})
 	if !isError {
@@ -294,10 +294,10 @@ func TestGmailHandlerBatchModifyMessageLabelsEmptyMessageIDs(t *testing.T) {
 }
 
 // TestGmailHandlerCreateGmailFilterMissingCriteria verifies that
-// create_gmail_filter returns error when criteria is missing.
+// gmail_create_filter returns error when criteria is missing.
 func TestGmailHandlerCreateGmailFilterMissingCriteria(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_gmail_filter", nil)
+	text, isError := callTool(t, s, "gmail_create_filter", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -307,10 +307,10 @@ func TestGmailHandlerCreateGmailFilterMissingCriteria(t *testing.T) {
 }
 
 // TestGmailHandlerCreateGmailFilterMissingAction verifies that
-// create_gmail_filter returns error when action is missing.
+// gmail_create_filter returns error when action is missing.
 func TestGmailHandlerCreateGmailFilterMissingAction(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_gmail_filter", map[string]any{
+	text, isError := callTool(t, s, "gmail_create_filter", map[string]any{
 		"criteria": map[string]any{"from": "test@example.com"},
 	})
 	if !isError {
@@ -322,10 +322,10 @@ func TestGmailHandlerCreateGmailFilterMissingAction(t *testing.T) {
 }
 
 // TestGmailHandlerDeleteGmailFilterMissingFilterID verifies that
-// delete_gmail_filter returns error when filter_id is missing.
+// gmail_delete_filter returns error when filter_id is missing.
 func TestGmailHandlerDeleteGmailFilterMissingFilterID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "delete_gmail_filter", nil)
+	text, isError := callTool(t, s, "gmail_delete_filter", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -335,11 +335,11 @@ func TestGmailHandlerDeleteGmailFilterMissingFilterID(t *testing.T) {
 }
 
 // TestGmailHandlerAuthFailureSearchGmailMessages verifies that
-// search_gmail_messages with valid params but no credentials returns
+// gmail_search_messages with valid params but no credentials returns
 // an error mentioning credentials or authentication.
 func TestGmailHandlerAuthFailureSearchGmailMessages(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "search_gmail_messages", map[string]any{
+	text, isError := callTool(t, s, "gmail_search_messages", map[string]any{
 		"query": "in:inbox",
 	})
 	if !isError {
@@ -352,10 +352,10 @@ func TestGmailHandlerAuthFailureSearchGmailMessages(t *testing.T) {
 }
 
 // TestGmailHandlerAuthFailureListGmailLabels verifies that
-// list_gmail_labels with no credentials returns an auth error.
+// gmail_list_labels with no credentials returns an auth error.
 func TestGmailHandlerAuthFailureListGmailLabels(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "list_gmail_labels", nil)
+	text, isError := callTool(t, s, "gmail_list_labels", nil)
 	if !isError {
 		t.Fatal("expected isError=true for auth failure")
 	}

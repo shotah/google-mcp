@@ -5,13 +5,13 @@ import (
 	"testing"
 )
 
-// --- list_calendars ---
-// list_calendars has no strictly required params (email resolved via env),
+// --- calendar_list_calendars ---
+// calendar_list_calendars has no strictly required params (email resolved via env),
 // so the first error path is auth failure.
 
 func TestCalendarHandlerListCalendarsAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "list_calendars", nil)
+	text, isError := callTool(t, s, "calendar_list_calendars", nil)
 	if !isError {
 		t.Fatal("expected isError=true for auth failure")
 	}
@@ -21,13 +21,13 @@ func TestCalendarHandlerListCalendarsAuthFailure(t *testing.T) {
 	}
 }
 
-// --- get_events ---
-// get_events has no strictly required params (defaults to primary calendar),
+// --- calendar_list_events ---
+// calendar_list_events has no strictly required params (defaults to primary calendar),
 // so the first error path is auth failure.
 
 func TestCalendarHandlerGetEventsAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "get_events", nil)
+	text, isError := callTool(t, s, "calendar_list_events", nil)
 	if !isError {
 		t.Fatal("expected isError=true for auth failure")
 	}
@@ -37,11 +37,11 @@ func TestCalendarHandlerGetEventsAuthFailure(t *testing.T) {
 	}
 }
 
-// --- query_freebusy ---
+// --- calendar_query_freebusy ---
 
 func TestCalendarHandlerQueryFreebusyMissingTimeMin(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "query_freebusy", nil)
+	text, isError := callTool(t, s, "calendar_query_freebusy", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -52,7 +52,7 @@ func TestCalendarHandlerQueryFreebusyMissingTimeMin(t *testing.T) {
 
 func TestCalendarHandlerQueryFreebusyMissingTimeMax(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "query_freebusy", map[string]any{
+	text, isError := callTool(t, s, "calendar_query_freebusy", map[string]any{
 		"time_min": "2026-01-01T00:00:00Z",
 	})
 	if !isError {
@@ -65,7 +65,7 @@ func TestCalendarHandlerQueryFreebusyMissingTimeMax(t *testing.T) {
 
 func TestCalendarHandlerQueryFreebusyAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "query_freebusy", map[string]any{
+	text, isError := callTool(t, s, "calendar_query_freebusy", map[string]any{
 		"time_min": "2026-01-01T00:00:00Z",
 		"time_max": "2026-01-02T00:00:00Z",
 	})
@@ -78,11 +78,11 @@ func TestCalendarHandlerQueryFreebusyAuthFailure(t *testing.T) {
 	}
 }
 
-// --- create_event ---
+// --- calendar_create_event ---
 
 func TestCalendarHandlerCreateEventMissingSummary(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_event", nil)
+	text, isError := callTool(t, s, "calendar_create_event", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -93,7 +93,7 @@ func TestCalendarHandlerCreateEventMissingSummary(t *testing.T) {
 
 func TestCalendarHandlerCreateEventMissingStartTime(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_event", map[string]any{
+	text, isError := callTool(t, s, "calendar_create_event", map[string]any{
 		"summary": "Test Event",
 	})
 	if !isError {
@@ -106,7 +106,7 @@ func TestCalendarHandlerCreateEventMissingStartTime(t *testing.T) {
 
 func TestCalendarHandlerCreateEventMissingEndTime(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_event", map[string]any{
+	text, isError := callTool(t, s, "calendar_create_event", map[string]any{
 		"summary":    "Test Event",
 		"start_time": "2026-01-01T10:00:00Z",
 	})
@@ -120,7 +120,7 @@ func TestCalendarHandlerCreateEventMissingEndTime(t *testing.T) {
 
 func TestCalendarHandlerCreateEventAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "create_event", map[string]any{
+	text, isError := callTool(t, s, "calendar_create_event", map[string]any{
 		"summary":    "Test Event",
 		"start_time": "2026-01-01T10:00:00Z",
 		"end_time":   "2026-01-01T11:00:00Z",
@@ -134,11 +134,11 @@ func TestCalendarHandlerCreateEventAuthFailure(t *testing.T) {
 	}
 }
 
-// --- modify_event ---
+// --- calendar_update_event ---
 
 func TestCalendarHandlerModifyEventMissingEventID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "modify_event", nil)
+	text, isError := callTool(t, s, "calendar_update_event", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -149,7 +149,7 @@ func TestCalendarHandlerModifyEventMissingEventID(t *testing.T) {
 
 func TestCalendarHandlerModifyEventAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "modify_event", map[string]any{
+	text, isError := callTool(t, s, "calendar_update_event", map[string]any{
 		"event_id": "evt123",
 	})
 	if !isError {
@@ -161,11 +161,11 @@ func TestCalendarHandlerModifyEventAuthFailure(t *testing.T) {
 	}
 }
 
-// --- delete_event ---
+// --- calendar_delete_event ---
 
 func TestCalendarHandlerDeleteEventMissingEventID(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "delete_event", nil)
+	text, isError := callTool(t, s, "calendar_delete_event", nil)
 	if !isError {
 		t.Fatal("expected isError=true")
 	}
@@ -176,7 +176,7 @@ func TestCalendarHandlerDeleteEventMissingEventID(t *testing.T) {
 
 func TestCalendarHandlerDeleteEventAuthFailure(t *testing.T) {
 	s := newToolTestServer(t)
-	text, isError := callTool(t, s, "delete_event", map[string]any{
+	text, isError := callTool(t, s, "calendar_delete_event", map[string]any{
 		"event_id": "evt123",
 	})
 	if !isError {
