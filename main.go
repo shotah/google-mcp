@@ -57,7 +57,7 @@ var presetDefaults = map[string]struct {
 		toolTier:   "core",
 		capability: "edit",
 	},
-	// Personal assistant (~21 tools): mail + calendar + docs + sheets + tasks.
+	// Personal assistant (~23 tools): mail + calendar + docs + sheets + tasks.
 	// Drive is usually unnecessary for Docs/Sheets work — see README.
 	"everyday": {
 		tools:      []string{"gmail", "calendar", "docs", "sheets", "tasks"},
@@ -153,7 +153,7 @@ func parseFlags(args []string) (server.Config, error) {
 	var capability string
 	fs.StringVar(&capability, "capability", "", "permission surface: read, edit, or complete (default: complete)")
 	var preset string
-	fs.StringVar(&preset, "preset", "", "named surface: lean (~11: gmail+calendar) or everyday (~21: +docs+sheets+tasks). Explicit --tools/--tool-tier/--capability override.")
+	fs.StringVar(&preset, "preset", "", "named surface: lean (~11: gmail+calendar) or everyday (~23: +docs+sheets+tasks). Explicit --tools/--tool-tier/--capability override.")
 	var transport string
 	fs.StringVar(&transport, "transport", "stdio", "transport mode: stdio or streamable-http")
 	var singleUser bool

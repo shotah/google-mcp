@@ -104,7 +104,7 @@ export USER_GOOGLE_EMAIL="you@gmail.com"  # optional but recommended
 
 Use server id **`google`** so hosts expose tools as `google__calendar_list_events` (short server + service-prefixed tool).
 
-**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks (~21 core tools). Track stats in a spreadsheet, draft notes, schedule, todos — without loading Drive:
+**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks (~23 core tools). Track stats in a spreadsheet, draft notes, schedule, todos — without loading Drive:
 
 ```json
 {
@@ -186,7 +186,7 @@ A browser opens; after you approve, tokens land in `~/.google_workspace_mcp/cred
 
 | Preset | Services | Tier / capability | ~Tools | Use when |
 | --- | --- | --- | --- | --- |
-| `everyday` | gmail, calendar, docs, sheets, tasks | core / edit | ~21 | Personal assistant (recommended) |
+| `everyday` | gmail, calendar, docs, sheets, tasks | core / edit | ~23 | Personal assistant (recommended) |
 | `lean` | gmail, calendar | core / edit | ~11 | Tiny local models; mail + calendar only |
 
 ### Tool tiers (how deep each service goes)
@@ -195,8 +195,8 @@ A browser opens; after you approve, tokens land in `~/.google_workspace_mcp/cred
 
 | Tier | Meaning | Count (all services) |
 | --- | --- | --- |
-| `core` | Everyday path an assistant actually needs | 47 |
-| `extended` | Discovery / management (list-by-name, filters, …) | 92 |
+| `core` | Everyday path an assistant actually needs | 49 |
+| `extended` | Discovery / management (list-by-name, filters, …) | 94 |
 | `complete` | Rare / power-user extras | 138 |
 
 Example: `--tools sheets --tool-tier core` → create/read/write cells. Need “find my sheet by name”? Use `extended` (`sheets_list_spreadsheets`) — still no Drive tools.
