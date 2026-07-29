@@ -1092,7 +1092,7 @@ func describeGmailFilterCriteria(criteria *gmail.FilterCriteria) string {
 
 func registerModifyGmailMessageLabels(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := newMCPTool("gmail_modify_message_labels",
-		mcp.WithDescription("Add/remove labels on one message. Archive: remove INBOX. Trash: add TRASH. Use after search/get for message_id. For many messages use gmail_batch_modify_message_labels."),
+		mcp.WithDescription("Add/remove labels on one message. Trash spam: add TRASH. Archive: remove INBOX. Mark spam: add SPAM. After gmail_search_messages. Many ids → gmail_batch_modify_message_labels."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address.")),
 		mcp.WithString("message_id", mcp.Required(), mcp.Description("ID of the message to modify.")),
 		mcp.WithArray("add_label_ids",

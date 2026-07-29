@@ -52,9 +52,9 @@ func TestNoFilterLoadsAllTools(t *testing.T) {
 func TestTierCoreFiltering(t *testing.T) {
 	s := newTestServer(t, server.Config{ToolTier: "core"})
 	names := registeredToolNames(t, s)
-	// Gmail core (4) + Drive core (7) + Calendar core (6, includes calendar_get_event + calendar_delete_event) + Docs core (3) + Sheets core (3) + Chat core (3) + Forms core (2) + Slides core (2) + Tasks core (4) + Contacts core (4) + Search core (1) + AppScript core (7) = 46.
-	if len(names) != 46 {
-		t.Errorf("expected 46 tools with core tier, got %d: %v", len(names), names)
+	// Gmail core (5) + Drive core (7) + Calendar core (6, includes calendar_get_event + calendar_delete_event) + Docs core (3) + Sheets core (3) + Chat core (3) + Forms core (2) + Slides core (2) + Tasks core (4) + Contacts core (4) + Search core (1) + AppScript core (7) = 47.
+	if len(names) != 47 {
+		t.Errorf("expected 47 tools with core tier, got %d: %v", len(names), names)
 	}
 	if !names["calendar_delete_event"] {
 		t.Error("expected calendar_delete_event in core tier")
@@ -231,8 +231,8 @@ func TestCapabilityEditPlusCore(t *testing.T) {
 	s := newTestServer(t, server.Config{ToolTier: "core", Capability: "edit"})
 	names := registeredToolNames(t, s)
 	// Core has no destructive tools, so edit does not shrink core further.
-	if len(names) != 46 {
-		t.Errorf("expected 46 tools with core+edit, got %d: %v", len(names), names)
+	if len(names) != 47 {
+		t.Errorf("expected 47 tools with core+edit, got %d: %v", len(names), names)
 	}
 	if !names["calendar_delete_event"] {
 		t.Error("expected calendar_delete_event with core+edit")
@@ -252,21 +252,22 @@ func TestReadOnlyOverridesCapability(t *testing.T) {
 }
 
 func TestLeanPresetSurface(t *testing.T) {
-	// --preset lean → gmail + calendar, core, edit ≈ 10 tools (auth_start is complete-tier only).
+	// --preset lean → gmail + calendar, core, edit ≈ 11 tools (auth_start is complete-tier only).
 	s := newTestServer(t, server.Config{
 		Tools:      []string{"gmail", "calendar"},
 		ToolTier:   "core",
 		Capability: "edit",
 	})
 	names := registeredToolNames(t, s)
-	if len(names) != 10 {
-		t.Errorf("expected 10 tools for lean preset, got %d: %v", len(names), names)
+	if len(names) != 11 {
+		t.Errorf("expected 11 tools for lean preset, got %d: %v", len(names), names)
 	}
 	for _, expected := range []string{
 		"gmail_search_messages",
 		"gmail_get_message",
 		"gmail_get_messages_batch",
 		"gmail_send_message",
+		"gmail_modify_message_labels",
 		"calendar_list_calendars",
 		"calendar_list_events",
 		"calendar_get_event",
@@ -287,7 +288,7 @@ func TestLeanPresetSurface(t *testing.T) {
 }
 
 func TestEverydayPresetSurface(t *testing.T) {
-	// --preset everyday → gmail + calendar + docs + sheets + tasks, core, edit ≈ 20 tools.
+	// --preset everyday → gmail + calendar + docs + sheets + tasks, core, edit ≈ 21 tools.
 	// Drive is not required for Docs/Sheets core work.
 	s := newTestServer(t, server.Config{
 		Tools:      []string{"gmail", "calendar", "docs", "sheets", "tasks"},
@@ -295,10 +296,11 @@ func TestEverydayPresetSurface(t *testing.T) {
 		Capability: "edit",
 	})
 	names := registeredToolNames(t, s)
-	if len(names) != 20 {
-		t.Errorf("expected 20 tools for everyday preset, got %d: %v", len(names), names)
+	if len(names) != 21 {
+		t.Errorf("expected 21 tools for everyday preset, got %d: %v", len(names), names)
 	}
 	for _, expected := range []string{
+		"gmail_modify_message_labels",
 		"docs_get_content",
 		"docs_create",
 		"docs_modify_text",
@@ -398,11 +400,11 @@ func TestToolsGmailFiltering(t *testing.T) {
 		t.Errorf("expected 16 tools with --tools gmail, got %d: %v", len(names), names)
 	}
 
-	// --tools gmail --tool-tier core: 4 core Gmail tools.
+	// --tools gmail --tool-tier core: 5 core Gmail tools (includes label modify for trash/archive).
 	s2 := newTestServer(t, server.Config{Tools: []string{"gmail"}, ToolTier: "core"})
 	names2 := registeredToolNames(t, s2)
-	if len(names2) != 4 {
-		t.Errorf("expected 4 tools with --tools gmail --tool-tier core, got %d: %v", len(names2), names2)
+	if len(names2) != 5 {
+		t.Errorf("expected 5 tools with --tools gmail --tool-tier core, got %d: %v", len(names2), names2)
 	}
 
 	// --tools gmail --read-only: 7 Gmail read tools + gmail_list_filters = 8.

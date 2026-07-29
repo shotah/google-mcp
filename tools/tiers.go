@@ -15,11 +15,11 @@ var tierTools = map[string]map[string][]string{
 			"gmail_get_message",
 			"gmail_get_messages_batch",
 			"gmail_send_message",
+			"gmail_modify_message_labels", // trash/archive/spam — everyday cleanup
 		},
 		"extended": {
 			"gmail_get_attachment",
 			"gmail_get_thread",
-			"gmail_modify_message_labels",
 			"gmail_list_labels",
 			"gmail_manage_label",
 			"gmail_draft_message",

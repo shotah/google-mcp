@@ -104,7 +104,7 @@ export USER_GOOGLE_EMAIL="you@gmail.com"  # optional but recommended
 
 Use server id **`google`** so hosts expose tools as `google__calendar_list_events` (short server + service-prefixed tool).
 
-**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks (~20 core tools). Track stats in a spreadsheet, draft notes, schedule, todos — without loading Drive:
+**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks (~21 core tools). Track stats in a spreadsheet, draft notes, schedule, todos — without loading Drive:
 
 ```json
 {
@@ -122,7 +122,7 @@ Use server id **`google`** so hosts expose tools as `google__calendar_list_event
 }
 ```
 
-**Tiny local models** (e.g. Qwen 35B) — starve harder with `--preset lean` (~10 tools: Gmail + Calendar only).
+**Tiny local models** (e.g. Qwen 35B) — starve harder with `--preset lean` (~11 tools: Gmail + Calendar only).
 
 If OAuth env vars are already exported in the shell that launches your MCP client, omit the `env` block:
 
@@ -186,8 +186,8 @@ A browser opens; after you approve, tokens land in `~/.google_workspace_mcp/cred
 
 | Preset | Services | Tier / capability | ~Tools | Use when |
 | --- | --- | --- | --- | --- |
-| `everyday` | gmail, calendar, docs, sheets, tasks | core / edit | ~20 | Personal assistant (recommended) |
-| `lean` | gmail, calendar | core / edit | ~10 | Tiny local models; mail + calendar only |
+| `everyday` | gmail, calendar, docs, sheets, tasks | core / edit | ~21 | Personal assistant (recommended) |
+| `lean` | gmail, calendar | core / edit | ~11 | Tiny local models; mail + calendar only |
 
 ### Tool tiers (how deep each service goes)
 
@@ -195,7 +195,7 @@ A browser opens; after you approve, tokens land in `~/.google_workspace_mcp/cred
 
 | Tier | Meaning | Count (all services) |
 | --- | --- | --- |
-| `core` | Everyday path an assistant actually needs | 46 |
+| `core` | Everyday path an assistant actually needs | 47 |
 | `extended` | Discovery / management (list-by-name, filters, …) | 92 |
 | `complete` | Rare / power-user extras | 138 |
 
@@ -267,7 +267,7 @@ Same credentials work in both. Tool **names** diverge on purpose for agent routi
 | `gmail_send_message`                | core     | Send email with optional attachments    |
 | `gmail_get_attachment`      | extended | Download attachment content             |
 | `gmail_get_thread`          | extended | Get full conversation thread            |
-| `gmail_modify_message_labels`       | extended | Add/remove labels from a message        |
+| `gmail_modify_message_labels`       | core     | Add/remove labels (trash/archive/spam)  |
 | `gmail_list_labels`                 | extended | List all labels                         |
 | `gmail_manage_label`                | extended | Create, update, or delete labels        |
 | `gmail_draft_message`               | extended | Create draft email                      |
