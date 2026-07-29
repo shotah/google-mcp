@@ -654,6 +654,7 @@ func TestDocsNormalizeColor(t *testing.T) {
 			}
 			if got == nil {
 				t.Fatalf("normalizeColor(%q) = nil, want non-nil", tt.hex)
+				return
 			}
 			if got.Red != tt.wantR {
 				t.Errorf("Red = %v, want %v", got.Red, tt.wantR)

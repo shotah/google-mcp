@@ -34,6 +34,7 @@ func TestGetCredential_ParsesAllFields(t *testing.T) {
 	}
 	if got == nil {
 		t.Fatal("GetCredential returned nil")
+		return
 	}
 
 	if got.Token.AccessToken != "ya29.access-token" {

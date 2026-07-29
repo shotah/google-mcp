@@ -93,6 +93,12 @@ linters:
           - revive
           - forcetypeassert
         path: _test\.go
+      # Linux CI staticcheck binary can miss that t.Fatal terminates; SA5011
+      # false-positives on idiomatic nil-guards in tests. Keep SA5011 in prod code.
+      - linters:
+          - staticcheck
+        path: _test\.go
+        text: "SA5011:"
     paths:
       - third_party$
       - builtin$
