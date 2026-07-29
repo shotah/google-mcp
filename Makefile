@@ -63,7 +63,7 @@ help: ## Show this help
 	@echo Project-specific
 	@echo   install-hooks          Install git pre-commit (autofix + lint + test)
 	@echo   version                Show current VERSION file + latest git tag
-	@echo   release                Bump tag, update VERSION, push (BUMP=patch^|minor^|major)
+	@echo   release                Bump tag + latest, update VERSION, push (BUMP=patch^|minor^|major)
 	@echo.
 	@echo Tooling
 	@echo   tools                  Install goimports-reviser + golangci-lint v2
@@ -147,14 +147,14 @@ endif
 version: ## Show VERSION file and latest git tag / next patch
 	@go run ./cmd/release -dry-run
 
-# Bump semver, commit VERSION, annotated-tag, push HEAD + tag (triggers GoReleaser).
+# Bump semver, commit VERSION, annotated-tag (v* + floating latest), push (triggers GoReleaser).
 # Examples:
 #   make release
 #   make release BUMP=minor
 #   make release BUMP=major
 #   make release TAG=v0.2.0
 #   make release DRY_RUN=1
-release: ## Bump version tag, update VERSION, push (BUMP=patch|minor|major)
+release: ## Bump version + latest tags, update VERSION, push (BUMP=patch|minor|major)
 	go run ./cmd/release \
 		$(if $(TAG),-version=$(TAG),-bump=$(BUMP)) \
 		$(if $(DRY_RUN),-dry-run,) \
