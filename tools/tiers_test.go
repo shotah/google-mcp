@@ -291,16 +291,15 @@ func TestLeanPresetSurface(t *testing.T) {
 }
 
 func TestEverydayPresetSurface(t *testing.T) {
-	// --preset everyday → gmail + calendar + docs + sheets + tasks, core, edit ≈ 23 tools.
-	// Drive is not required for Docs/Sheets core work.
+	// --preset everyday → gmail + calendar + docs + sheets + tasks + contacts + drive, core, edit ≈ 34 tools.
 	s := newTestServer(t, server.Config{
-		Tools:      []string{"gmail", "calendar", "docs", "sheets", "tasks"},
+		Tools:      []string{"gmail", "calendar", "docs", "sheets", "tasks", "contacts", "drive"},
 		ToolTier:   "core",
 		Capability: "edit",
 	})
 	names := registeredToolNames(t, s)
-	if len(names) != 23 {
-		t.Errorf("expected 23 tools for everyday preset, got %d: %v", len(names), names)
+	if len(names) != 34 {
+		t.Errorf("expected 34 tools for everyday preset, got %d: %v", len(names), names)
 	}
 	for _, expected := range []string{
 		"gmail_modify_message_labels",
@@ -316,19 +315,29 @@ func TestEverydayPresetSurface(t *testing.T) {
 		"tasks_update_task",
 		"tasks_list_tasklists",
 		"tasks_create_tasklist",
+		"contacts_search",
+		"contacts_get",
+		"contacts_list",
+		"contacts_create",
+		"drive_search_files",
+		"drive_get_file_content",
+		"drive_share_file",
 	} {
 		if !names[expected] {
 			t.Errorf("expected everyday tool %q", expected)
 		}
-	}
-	if names["drive_search_files"] {
-		t.Error("drive tools must not appear on everyday surface")
 	}
 	if names["sheets_list_spreadsheets"] {
 		t.Error("sheets_list_spreadsheets is extended — not on everyday core")
 	}
 	if names["tasks_delete_tasklist"] {
 		t.Error("tasks_delete_tasklist is complete — not on everyday core")
+	}
+	if names["drive_list_items"] {
+		t.Error("drive_list_items is extended — not on everyday core")
+	}
+	if names["contacts_batch_delete"] {
+		t.Error("contacts_batch_delete is complete — not on everyday core")
 	}
 }
 

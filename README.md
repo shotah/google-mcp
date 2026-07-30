@@ -104,7 +104,7 @@ export USER_GOOGLE_EMAIL="you@gmail.com"  # optional but recommended
 
 Use server id **`google`** so hosts expose tools as `google__calendar_list_events` (short server + service-prefixed tool).
 
-**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks (~23 core tools). Track stats in a spreadsheet, draft notes, schedule, todos — without loading Drive:
+**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks, Contacts, Drive (~34 core tools). Resolve people, find files by name, draft notes, schedule, todos:
 
 ```json
 {
@@ -139,17 +139,16 @@ If OAuth env vars are already exported in the shell that launches your MCP clien
 
 #### Which services do I need?
 
-| Goal | Enable | Skip |
+| Goal | Enable | Notes |
 | --- | --- | --- |
-| Track stats / log rows in a Sheet | `sheets` (in `everyday`) | **Drive** — create with `sheets_create_spreadsheet`, then `sheets_modify_values` / `sheets_read_values` using `spreadsheet_id` |
-| Draft / edit a Doc | `docs` (in `everyday`) | **Drive** — same idea: `docs_create` / `docs_get_content` / `docs_modify_text` |
-| Find a sheet by name | `sheets` + `--tool-tier extended` (`sheets_list_spreadsheets`) | Still not Drive tools — list is a Sheets tool that uses Drive API under the hood |
-| Search arbitrary files, share links, upload binaries, folders | `drive` | — |
+| Track stats / log rows in a Sheet | `sheets` (in `everyday`) | `sheets_create_spreadsheet`, then `sheets_modify_values` / `sheets_read_values` |
+| Draft / edit a Doc | `docs` (in `everyday`) | `docs_create` / `docs_get_content` / `docs_modify_text` |
+| Find a file / Doc by name | `drive` (in `everyday`) | `drive_search_files`, then Docs/Sheets tools with the id |
+| Find a sheet by name (Sheets-only) | `sheets` + `--tool-tier extended` | `sheets_list_spreadsheets` (uses Drive API under the hood) |
+| Invite / email someone by name | `contacts` (in `everyday`) | `contacts_search` → email → calendar/gmail |
 | Tasks / todos | `tasks` (in `everyday`) | Use `task_list_id="@default"` for the account default list |
 
-OAuth already requests Drive + Docs + Sheets scopes on `google-mcp auth`. Enabling `--tools sheets` does **not** require Drive *tools* — only enable Drive when the agent needs file search/share/upload.
-
-Add services only when the persona needs them, e.g. `--preset everyday --tools "gmail calendar docs sheets tasks drive"`.
+OAuth already requests Drive + Docs + Sheets + People scopes on `google-mcp auth`. Trim with `--tools` if a persona needs a smaller surface.
 
 ### 5. Authenticate once (human / CLI — not an agent tool)
 
@@ -186,7 +185,7 @@ A browser opens; after you approve, tokens land in `~/.google_workspace_mcp/cred
 
 | Preset | Services | Tier / capability | ~Tools | Use when |
 | --- | --- | --- | --- | --- |
-| `everyday` | gmail, calendar, docs, sheets, tasks | core / edit | ~23 | Personal assistant (recommended) |
+| `everyday` | gmail, calendar, docs, sheets, tasks, contacts, drive | core / edit | ~34 | Personal assistant (recommended) |
 | `lean` | gmail, calendar | core / edit | ~11 | Tiny local models; mail + calendar only |
 
 ### Tool tiers (how deep each service goes)

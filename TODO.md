@@ -30,8 +30,8 @@ compound (`google-workspace`). Hosts expose `{server}__{tool}`, so both halves m
 }
 ```
 
-- `everyday` = gmail+calendar+docs+sheets+tasks, core, edit ≈ 20 tools (personal assistant; **Drive usually not needed** for Sheets/Docs).
-- `lean` = gmail+calendar only ≈ 10 tools (tiny models).
+- `everyday` = gmail+calendar+docs+sheets+tasks+contacts+drive, core, edit ≈ 34 tools (personal assistant).
+- `lean` = gmail+calendar only ≈ 11 tools (tiny models).
 
 ## Rename map
 
@@ -55,6 +55,23 @@ Highlights:
 - Point `mcp.toml` / Cursor config `name = "google"`
 - Rewrite persona recipes from `google-workspace__create_event` → `google__calendar_create_event`
 - Keep **math** / **strava** / **garmin** as separate short servers
+
+## Sibling MCP rename wave (reference only)
+
+This repo is the **template** for `{service}_{verb}_{object}`. Sibling TODOs (do
+not re-open google renames unless a leftover slips through):
+
+| Repo | Status |
+| --- | --- |
+| `go-garmin` | TODO.md — rename wave |
+| `youtube-go-mcp` | TODO.md section |
+| `mcp-beam` | TODO.md |
+| `mcp-go-math` | TODO.md |
+| `mcp-gemini-search` | TODO.md section |
+| go-strava-mcp (fork) | done — shotah/go-strava-mcp |
+
+Master plan (empty memory → Gemini train → Qwen cutover): **ai-gantry `todo.md`**.
+Shared naming contract: **[ai-gantry/docs/mcp-naming.md](https://github.com/shotah/ai-gantry/blob/main/docs/mcp-naming.md)**.
 
 ## Done (agent-clarity foundations)
 
@@ -102,9 +119,9 @@ Order = personal-assistant impact first, then specialty surfaces.
 
 | Priority | Service | Status | Notes |
 | --- | --- | --- | --- |
-| — | gmail, calendar, docs, sheets, tasks | **done (core)** | `everyday` includes tasks; use `task_list_id="@default"` |
-| 11 | **drive** | **done (core)** | Lean search/get/create/share; not in everyday |
-| 12 | **contacts** | **done (core)** | Search/get/list/create lean; batch delete capability-gated |
+| — | gmail, calendar, docs, sheets, tasks, contacts, drive | **done (core)** | in `everyday`; use `task_list_id="@default"` |
+| 11 | **drive** | **done (core)** | Lean search/get/create/share; in `everyday` |
+| 12 | **contacts** | **done (core)** | Search/get/list/create lean; in `everyday` |
 | 13 | **chat** | **done (core)** | space_id normalize + teach via `chat_list_spaces` |
 | 14 | **slides** | **done (core)** | Create/get lean; batch_update stays extended |
 | 15 | **forms** | **done (core)** | Create/get lean |
@@ -122,7 +139,7 @@ Order = personal-assistant impact first, then specialty surfaces.
 - [x] Handler / mock / tier tests
 - [x] README + AGENTS.md
 - [x] MCP `ServerName` = `google`
-- [x] `--preset lean` / `everyday` (+ tasks) + Drive vs Docs/Sheets guidance
+- [x] `--preset lean` / `everyday` (+ tasks, contacts, drive)
 - [x] `google-mcp auth` / `login` CLI + README (auth out of agent path)
 - [x] Split `calendar_list_events` / `calendar_get_event`
 - [x] Agent-UX lean overhaul — all services’ core tools

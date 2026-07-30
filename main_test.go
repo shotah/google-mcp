@@ -212,7 +212,7 @@ func TestParseFlagsPresetEveryday(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	wantTools := []string{"gmail", "calendar", "docs", "sheets", "tasks"}
+	wantTools := []string{"gmail", "calendar", "docs", "sheets", "tasks", "contacts", "drive"}
 	if len(cfg.Tools) != len(wantTools) {
 		t.Fatalf("tools = %v, want %v", cfg.Tools, wantTools)
 	}
