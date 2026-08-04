@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -133,10 +134,14 @@ func beginAuthSession(ctx context.Context, userEmail string) (*authSession, erro
 	}
 	state := hex.EncodeToString(stateBytes)
 
-	// Find an available port for the callback server
-	port, err := findAvailablePort()
+	// Callback must be reachable from the host browser. Default port 4100 + bind
+	// 0.0.0.0 so Docker Desktop can publish -p 127.0.0.1:4100:4100 (localhost-only
+	// bind inside a container is invisible to published ports). Redirect URI stays
+	// http://localhost:<port>/… for the Google OAuth client.
+	resultCh := make(chan CallbackResult, 1)
+	srv, port, err := startCallbackServer(state, resultCh)
 	if err != nil {
-		return nil, fmt.Errorf("finding available port: %w", err)
+		return nil, fmt.Errorf("starting OAuth callback server: %w", err)
 	}
 
 	redirectURI := fmt.Sprintf("http://localhost:%d/oauth2callback", port)
@@ -156,9 +161,6 @@ func beginAuthSession(ctx context.Context, userEmail string) (*authSession, erro
 		oauth2.AccessTypeOffline,
 		oauth2.SetAuthURLParam("prompt", "consent"),
 	)
-
-	resultCh := make(chan CallbackResult, 1)
-	srv := startCallbackServer(port, state, resultCh)
 
 	// OAuth callback outlives a short tool-call context; keep values but not cancellation.
 	oauthCtx := context.WithoutCancel(ctx)
@@ -259,24 +261,35 @@ func authStartMessage(serviceName, userEmail, authURL string) string {
 	return msg.String()
 }
 
-// findAvailablePort finds a free TCP port on localhost.
-func findAvailablePort() (int, error) {
-	l, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		return 0, err
+const defaultOAuthCallbackPort = 4100
+
+// callbackListenPort returns the TCP port for the OAuth callback server.
+// GOOGLE_OAUTH_PORT or GOOGLE_AUTH_PORT overrides the default (4100).
+func callbackListenPort() int {
+	for _, key := range []string{"GOOGLE_OAUTH_PORT", "GOOGLE_AUTH_PORT"} {
+		if raw := strings.TrimSpace(os.Getenv(key)); raw != "" {
+			p, err := strconv.Atoi(raw)
+			if err == nil && p > 0 && p < 65536 {
+				return p
+			}
+		}
 	}
-	tcpAddr, ok := l.Addr().(*net.TCPAddr)
-	if !ok {
-		_ = l.Close()
-		return 0, errors.New("unexpected listener address type")
+	return defaultOAuthCallbackPort
+}
+
+// callbackBindHost is the interface bind for the callback server.
+// Default 0.0.0.0 so Docker -p HOST:CONTAINER can reach it; override with
+// GOOGLE_OAUTH_BIND=127.0.0.1 for host-only listen.
+func callbackBindHost() string {
+	if h := strings.TrimSpace(os.Getenv("GOOGLE_OAUTH_BIND")); h != "" {
+		return h
 	}
-	port := tcpAddr.Port
-	_ = l.Close()
-	return port, nil
+	return "0.0.0.0"
 }
 
 // startCallbackServer starts a minimal HTTP server that handles the OAuth callback.
-func startCallbackServer(port int, expectedState string, resultCh chan<- CallbackResult) *http.Server {
+// It returns the server and the port actually bound (for the redirect URI).
+func startCallbackServer(expectedState string, resultCh chan<- CallbackResult) (*http.Server, int, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/oauth2callback", func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
@@ -310,19 +323,39 @@ func startCallbackServer(port int, expectedState string, resultCh chan<- Callbac
 		fmt.Fprint(w, "<html><body><h1>Authentication Successful!</h1><p>You can close this window and return to the application.</p></body></html>")
 	})
 
+	bindHost := callbackBindHost()
+	port := callbackListenPort()
+	addr := net.JoinHostPort(bindHost, strconv.Itoa(port))
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		// Fixed port busy — fall back to ephemeral on the same bind host.
+		addr = net.JoinHostPort(bindHost, "0")
+		ln, err = net.Listen("tcp", addr)
+		if err != nil {
+			return nil, 0, err
+		}
+		fmt.Fprintf(os.Stderr, "oauth: port %d busy; using ephemeral %s (Docker -p may not work)\n", port, ln.Addr())
+	}
+
+	tcpAddr, ok := ln.Addr().(*net.TCPAddr)
+	if !ok {
+		_ = ln.Close()
+		return nil, 0, errors.New("unexpected listener address type")
+	}
+	boundPort := tcpAddr.Port
+
 	srv := &http.Server{
-		Addr:              fmt.Sprintf("localhost:%d", port),
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 			log.Printf("OAuth callback server error: %v", err)
 		}
 	}()
 
-	return srv
+	return srv, boundPort, nil
 }
 
 // fetchUserEmail fetches the authenticated user's email address using the OAuth2 userinfo endpoint.
