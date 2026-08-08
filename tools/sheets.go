@@ -645,8 +645,9 @@ func gradientPointToInterpolation(pt gradientPoint) *sheets.InterpolationPoint {
 
 func registerListSpreadsheets(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := newMCPTool("sheets_list_spreadsheets",
-		mcp.WithDescription("List spreadsheets the user can access (name, spreadsheet_id, modified time). Use for 'find my sheet' before sheets_read_values. Not for Drive files generally — use drive_search_files."),
+		mcp.WithDescription("List/filter spreadsheets (name, spreadsheet_id, modified time). Optional query filters by title. Paste a share URL to resolve one sheet. Use before sheets_read_values. Not for other Drive files — use drive_search_files."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address")),
+		mcp.WithString("query", mcp.Description("Optional title text or share/edit URL. Omit to list recent spreadsheets.")),
 		mcp.WithNumber("max_results", mcp.Description("Maximum number of spreadsheets to return (default 25)")),
 	)
 	s.AddTool(tool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -654,6 +655,7 @@ func registerListSpreadsheets(s *mcpserver.MCPServer, getClient httpClientFunc) 
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
+		query := strings.TrimSpace(request.GetString("query", ""))
 		maxResults := request.GetInt("max_results", 25)
 
 		httpClient, err := getClient(ctx, email)
@@ -665,8 +667,31 @@ func registerListSpreadsheets(s *mcpserver.MCPServer, getClient httpClientFunc) 
 			return mcp.NewToolResultError(fmt.Sprintf("creating Drive service: %v", err)), nil
 		}
 
+		// Human paste: share/edit URL → resolve that spreadsheet directly.
+		if looksLikeGoogleURL(query) {
+			fileID := extractGoogleResourceID(query)
+			if fileID == "" {
+				return mcp.NewToolResultError("query looks like a URL but no Google spreadsheet id was found"), nil
+			}
+			meta, err := drvSvc.Files.Get(fileID).
+				Fields("id,name,modifiedTime,webViewLink,mimeType").
+				SupportsAllDrives(true).
+				Do()
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("getting spreadsheet: %v", err)), nil
+			}
+			files := []*drive.File{meta}
+			return mcp.NewToolResultText(formatSpreadsheetList(files, email, query)), nil
+		}
+
+		q := "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"
+		if query != "" {
+			escaped := strings.ReplaceAll(query, "'", "\\'")
+			q = fmt.Sprintf("name contains '%s' and %s", escaped, q)
+		}
+
 		resp, err := drvSvc.Files.List().
-			Q("mimeType='application/vnd.google-apps.spreadsheet'").
+			Q(q).
 			PageSize(int64(maxResults)).
 			Fields("files(id,name,modifiedTime,webViewLink)").
 			OrderBy("modifiedTime desc").
@@ -679,40 +704,51 @@ func registerListSpreadsheets(s *mcpserver.MCPServer, getClient httpClientFunc) 
 
 		files := resp.Files
 		if len(files) == 0 {
+			if query != "" {
+				return mcp.NewToolResultText(fmt.Sprintf("No spreadsheets found for %s matching '%s'.", email, query)), nil
+			}
 			return mcp.NewToolResultText(fmt.Sprintf("No spreadsheets found for %s.", email)), nil
 		}
 
-		var b strings.Builder
-		fmt.Fprintf(&b, "Successfully listed %d spreadsheets for %s:", len(files), email)
-		for _, f := range files {
-			modified := f.ModifiedTime
-			if modified == "" {
-				modified = "Unknown"
-			}
-			link := f.WebViewLink
-			if link == "" {
-				link = "No link"
-			}
-			fmt.Fprintf(&b, "\n- \"%s\" (ID: %s) | Modified: %s | Link: %s", f.Name, f.Id, modified, link)
-		}
-		return mcp.NewToolResultText(b.String()), nil
+		return mcp.NewToolResultText(formatSpreadsheetList(files, email, query)), nil
 	})
+}
+
+func formatSpreadsheetList(files []*drive.File, email, query string) string {
+	var b strings.Builder
+	if query != "" {
+		fmt.Fprintf(&b, "Found %d spreadsheets for %s matching '%s':", len(files), email, query)
+	} else {
+		fmt.Fprintf(&b, "Successfully listed %d spreadsheets for %s:", len(files), email)
+	}
+	for _, f := range files {
+		modified := f.ModifiedTime
+		if modified == "" {
+			modified = "Unknown"
+		}
+		link := f.WebViewLink
+		if link == "" {
+			link = "No link"
+		}
+		fmt.Fprintf(&b, "\n- \"%s\" (ID: %s) | Modified: %s | Link: %s", f.Name, f.Id, modified, link)
+	}
+	return b.String()
 }
 
 // --- sheets_get_spreadsheet_info ---
 
 func registerGetSpreadsheetInfo(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := newMCPTool("sheets_get_spreadsheet_info",
-		mcp.WithDescription("Spreadsheet title, locale, and sheet tabs for spreadsheet_id. Use before read/modify when you need tab names. Not for cell values — use sheets_read_values."),
+		mcp.WithDescription("Spreadsheet title, locale, and sheet tabs for spreadsheet_id or share URL. Use before read/modify when you need tab names. Not for cell values — use sheets_read_values."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address")),
-		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("The ID of the spreadsheet")),
+		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("Spreadsheet id or Sheets/Drive share URL")),
 	)
 	s.AddTool(tool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		email, err := resolveEmail(request)
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
-		spreadsheetID, err := request.RequireString("spreadsheet_id")
+		spreadsheetID, err := requireGoogleID(request, "spreadsheet_id")
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
@@ -782,7 +818,7 @@ func registerReadSheetValues(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := newMCPTool("sheets_read_values",
 		mcp.WithDescription("Read cells from spreadsheet_id + range_name (e.g. Sheet1!A1:D10). Write → sheets_modify_values. New file → sheets_create_spreadsheet."),
 		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
-		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("Spreadsheet id from sheets_create_spreadsheet or a prior result.")),
+		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("Spreadsheet id or Sheets/Drive share URL.")),
 		mcp.WithString("range_name", mcp.Description("A1 range. Default: A1:Z1000.")),
 	)
 	s.AddTool(tool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -790,9 +826,9 @@ func registerReadSheetValues(s *mcpserver.MCPServer, getClient httpClientFunc) {
 		if err != nil {
 			return needArg("user_google_email", `sheets_read_values(spreadsheet_id, range_name="Sheet1!A1:D10")`), nil
 		}
-		spreadsheetID, err := request.RequireString("spreadsheet_id")
+		spreadsheetID, err := requireGoogleID(request, "spreadsheet_id")
 		if err != nil {
-			return needArg("spreadsheet_id", "sheets_create_spreadsheet(title=…) then sheets_read_values(spreadsheet_id, range_name)"), nil
+			return googleIDError(err, "spreadsheet_id", "sheets_create_spreadsheet(title=…) then sheets_read_values(spreadsheet_id, range_name)"), nil
 		}
 		rangeName := request.GetString("range_name", "A1:Z1000")
 
@@ -842,7 +878,7 @@ func registerModifySheetValues(s *mcpserver.MCPServer, getClient httpClientFunc)
 	tool := newMCPTool("sheets_modify_values",
 		mcp.WithDescription("Write cells: spreadsheet_id + range_name + values (2D JSON). Clear range: clear_values=true. Read → sheets_read_values. Styling → sheets_format_range."),
 		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
-		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("Spreadsheet id from sheets_create_spreadsheet.")),
+		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("Spreadsheet id or Sheets/Drive share URL.")),
 		mcp.WithString("range_name", mcp.Required(), mcp.Description("A1 range to write or clear (e.g. Sheet1!A1).")),
 		mcp.WithString("values", mcp.Description("2D values as JSON, e.g. [[\"a\",\"b\"],[\"1\",\"2\"]].")),
 		mcp.WithBoolean("clear_values", mcp.Description("If true, clear the range instead of writing.")),
@@ -852,9 +888,9 @@ func registerModifySheetValues(s *mcpserver.MCPServer, getClient httpClientFunc)
 		if err != nil {
 			return needArg("user_google_email", `sheets_modify_values(spreadsheet_id, range_name, values=[[…]])`), nil
 		}
-		spreadsheetID, err := request.RequireString("spreadsheet_id")
+		spreadsheetID, err := requireGoogleID(request, "spreadsheet_id")
 		if err != nil {
-			return needArg("spreadsheet_id", "sheets_create_spreadsheet(title=…) then sheets_modify_values(spreadsheet_id, range_name, values)"), nil
+			return googleIDError(err, "spreadsheet_id", "sheets_create_spreadsheet(title=…) then sheets_modify_values(spreadsheet_id, range_name, values)"), nil
 		}
 		rangeName, err := request.RequireString("range_name")
 		if err != nil {
@@ -955,7 +991,7 @@ func registerFormatSheetRange(s *mcpserver.MCPServer, getClient httpClientFunc) 
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
-		spreadsheetID, err := request.RequireString("spreadsheet_id")
+		spreadsheetID, err := requireGoogleID(request, "spreadsheet_id")
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
@@ -1112,7 +1148,7 @@ func registerAddConditionalFormatting(s *mcpserver.MCPServer, getClient httpClie
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
-		spreadsheetID, err := request.RequireString("spreadsheet_id")
+		spreadsheetID, err := requireGoogleID(request, "spreadsheet_id")
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
@@ -1322,7 +1358,7 @@ func registerUpdateConditionalFormatting(s *mcpserver.MCPServer, getClient httpC
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
-		spreadsheetID, err := request.RequireString("spreadsheet_id")
+		spreadsheetID, err := requireGoogleID(request, "spreadsheet_id")
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
@@ -1573,7 +1609,7 @@ func registerDeleteConditionalFormatting(s *mcpserver.MCPServer, getClient httpC
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
-		spreadsheetID, err := request.RequireString("spreadsheet_id")
+		spreadsheetID, err := requireGoogleID(request, "spreadsheet_id")
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
@@ -1711,7 +1747,7 @@ func registerCreateSheet(s *mcpserver.MCPServer, getClient httpClientFunc) {
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
-		spreadsheetID, err := request.RequireString("spreadsheet_id")
+		spreadsheetID, err := requireGoogleID(request, "spreadsheet_id")
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}

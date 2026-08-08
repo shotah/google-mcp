@@ -76,10 +76,10 @@ var tierTools = map[string]map[string][]string{
 			"docs_get_content",
 			"docs_create",
 			"docs_modify_text",
+			"docs_search", // title / share-URL lookup for everyday + small models
 		},
 		"extended": {
 			"docs_export_to_pdf",
-			"docs_search",
 			"docs_find_and_replace",
 			"docs_list_in_folder",
 			"docs_insert_elements",
@@ -103,9 +103,9 @@ var tierTools = map[string]map[string][]string{
 			"sheets_create_spreadsheet",
 			"sheets_read_values",
 			"sheets_modify_values",
+			"sheets_list_spreadsheets", // title filter / share-URL lookup for everyday + small models
 		},
 		"extended": {
-			"sheets_list_spreadsheets",
 			"sheets_get_spreadsheet_info",
 		},
 		"complete": {

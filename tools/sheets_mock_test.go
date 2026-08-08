@@ -67,6 +67,30 @@ func TestSheetsMockListSpreadsheets(t *testing.T) {
 			t.Errorf("expected 'No spreadsheets found', got:\n%s", text)
 		}
 	})
+
+	t.Run("success_with_title_query", func(t *testing.T) {
+		ts := fakeAPIServer(t, map[string]any{
+			"/drive/v3/files": `{
+				"files": [
+					{"id":"ss001","name":"Budget 2026","modifiedTime":"2026-02-10T08:00:00Z","webViewLink":"https://docs.google.com/spreadsheets/d/ss001/edit"}
+				]
+			}`,
+		})
+		s := sheetsTestServer(t, []func(*mcpserver.MCPServer, httpClientFunc){registerListSpreadsheets}, testClientFunc(ts))
+		text, isError := callTool(t, s, "sheets_list_spreadsheets", map[string]any{
+			"query":             "Budget",
+			"user_google_email": "test@example.com",
+		})
+		if isError {
+			t.Fatalf("unexpected error: %s", text)
+		}
+		if !strings.Contains(text, "Found 1 spreadsheets") {
+			t.Errorf("expected filtered list header, got:\n%s", text)
+		}
+		if !strings.Contains(text, "Budget 2026") {
+			t.Errorf("expected 'Budget 2026' in output")
+		}
+	})
 }
 
 // --- sheets_create_spreadsheet ---

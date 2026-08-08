@@ -559,6 +559,8 @@ func TestCalendarExtractDriveFileID(t *testing.T) {
 		{name: "Drive URL with id= and extra params", input: "https://drive.google.com/open?id=jkl012&authuser=0", want: "jkl012"},
 		{name: "URL without file ID pattern", input: "https://example.com/some/page", want: ""},
 		{name: "Drive URL /d/ no trailing slash", input: "https://drive.google.com/file/d/mno345", want: "mno345"},
+		{name: "Docs share URL", input: "https://docs.google.com/document/d/doc99/edit?usp=sharing", want: "doc99"},
+		{name: "Sheets share URL", input: "https://docs.google.com/spreadsheets/d/sheet88/edit#gid=0", want: "sheet88"},
 		{name: "empty string", input: "", want: ""},
 	}
 

@@ -66,9 +66,9 @@ func newDocsService(ctx context.Context, getClient httpClientFunc, email string)
 
 func registerSearchDocs(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := newMCPTool("docs_search",
-		mcp.WithDescription("Search Google Docs by title via Drive (returns document_id). Use for 'find my doc called…'. In-folder browse: docs_list_in_folder. Not content — use docs_get_content."),
+		mcp.WithDescription("Find Google Docs by title (returns document_id). Paste a share URL to resolve one doc. Use for 'find my doc called…'. Then docs_get_content. In-folder browse: docs_list_in_folder."),
 		mcp.WithString("user_google_email", mcp.Description("The user's Google email address. Required.")),
-		mcp.WithString("query", mcp.Required(), mcp.Description("Search query string for document names.")),
+		mcp.WithString("query", mcp.Required(), mcp.Description("Document title text or Docs/Drive share URL.")),
 		mcp.WithNumber("page_size", mcp.Description("Number of results to return. Defaults to 10.")),
 	)
 	s.AddTool(tool, handleSearchDocs(getClient))
@@ -91,21 +91,37 @@ func handleSearchDocs(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		escaped := strings.ReplaceAll(query, "'", "\\'")
-		q := fmt.Sprintf("name contains '%s' and mimeType='application/vnd.google-apps.document' and trashed=false", escaped)
+		var files []*drive.File
+		if looksLikeGoogleURL(query) {
+			fileID := extractGoogleResourceID(query)
+			if fileID == "" {
+				return mcp.NewToolResultError("query looks like a URL but no Google document id was found"), nil
+			}
+			meta, err := driveSvc.Files.Get(fileID).
+				Fields("id, name, createdTime, modifiedTime, webViewLink").
+				SupportsAllDrives(true).
+				Do()
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("Drive API error: %v", err)), nil
+			}
+			files = []*drive.File{meta}
+		} else {
+			escaped := strings.ReplaceAll(query, "'", "\\'")
+			q := fmt.Sprintf("name contains '%s' and mimeType='application/vnd.google-apps.document' and trashed=false", escaped)
 
-		resp, err := driveSvc.Files.List().
-			Q(q).
-			PageSize(int64(pageSize)).
-			Fields("files(id, name, createdTime, modifiedTime, webViewLink)").
-			SupportsAllDrives(true).
-			IncludeItemsFromAllDrives(true).
-			Do()
-		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("Drive API error: %v", err)), nil
+			resp, err := driveSvc.Files.List().
+				Q(q).
+				PageSize(int64(pageSize)).
+				Fields("files(id, name, createdTime, modifiedTime, webViewLink)").
+				SupportsAllDrives(true).
+				IncludeItemsFromAllDrives(true).
+				Do()
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("Drive API error: %v", err)), nil
+			}
+			files = resp.Files
 		}
 
-		files := resp.Files
 		if len(files) == 0 {
 			return mcp.NewToolResultText(fmt.Sprintf("No Google Docs found matching '%s'.", query)), nil
 		}
@@ -131,9 +147,9 @@ func handleSearchDocs(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerGetDocContent(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := newMCPTool("docs_get_content",
-		mcp.WithDescription("Read plain text by document_id. Edit → docs_modify_text. New doc → docs_create. Find id (extended) → docs_search."),
+		mcp.WithDescription("Read plain text by document_id or share URL. Edit → docs_modify_text. New doc → docs_create. Find by title → docs_search."),
 		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
-		mcp.WithString("document_id", mcp.Required(), mcp.Description("Document id from docs_create or a prior result.")),
+		mcp.WithString("document_id", mcp.Required(), mcp.Description("Document id or Docs/Drive share URL.")),
 	)
 	s.AddTool(tool, handleGetDocContent(getClient))
 }
@@ -144,9 +160,9 @@ func handleGetDocContent(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		if err != nil {
 			return needArg("user_google_email", "docs_get_content(document_id=…)"), nil
 		}
-		documentID, err := request.RequireString("document_id")
+		documentID, err := requireGoogleID(request, "document_id")
 		if err != nil {
-			return needArg("document_id", "docs_create(title=…) or docs_get_content(document_id=…)"), nil
+			return googleIDError(err, "document_id", "docs_create(title=…) or docs_get_content(document_id=…)"), nil
 		}
 
 		driveSvc, err := newDriveService(ctx, getClient, email)
@@ -330,7 +346,7 @@ func handleListDocsInFolder(getClient httpClientFunc) mcpserver.ToolHandlerFunc 
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		folderID := request.GetString("folder_id", "root")
+		folderID := optionalFolderID(request, "root")
 		pageSize := request.GetInt("page_size", 100)
 
 		driveSvc, err := newDriveService(ctx, getClient, email)
@@ -451,9 +467,9 @@ func handleInspectDocStructure(getClient httpClientFunc) mcpserver.ToolHandlerFu
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		documentID, err := request.RequireString("document_id")
+		documentID, err := requireGoogleID(request, "document_id")
 		if err != nil {
-			return mcp.NewToolResultError("document_id is required"), nil
+			return googleIDError(err, "document_id", "document_id=…"), nil
 		}
 		detailed := getBool(request, "detailed", false)
 
@@ -698,9 +714,9 @@ func handleDebugTableStructure(getClient httpClientFunc) mcpserver.ToolHandlerFu
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		documentID, err := request.RequireString("document_id")
+		documentID, err := requireGoogleID(request, "document_id")
 		if err != nil {
-			return mcp.NewToolResultError("document_id is required"), nil
+			return googleIDError(err, "document_id", "document_id=…"), nil
 		}
 		tableIndex := request.GetInt("table_index", 0)
 
@@ -805,9 +821,9 @@ func handleModifyDocText(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		if err != nil {
 			return needArg("user_google_email", "docs_modify_text(document_id, start_index, text=…)"), nil
 		}
-		documentID, err := request.RequireString("document_id")
+		documentID, err := requireGoogleID(request, "document_id")
 		if err != nil {
-			return needArg("document_id", "docs_create(title=…) then docs_modify_text(document_id, start_index, text=…)"), nil
+			return googleIDError(err, "document_id", "docs_create(title=…) then docs_modify_text(document_id, start_index, text=…)"), nil
 		}
 		startIndex := request.GetInt("start_index", 0)
 		endIndex := request.GetInt("end_index", -1)
@@ -1095,9 +1111,9 @@ func handleFindAndReplaceDoc(getClient httpClientFunc) mcpserver.ToolHandlerFunc
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		documentID, err := request.RequireString("document_id")
+		documentID, err := requireGoogleID(request, "document_id")
 		if err != nil {
-			return mcp.NewToolResultError("document_id is required"), nil
+			return googleIDError(err, "document_id", "document_id=…"), nil
 		}
 		findText, err := request.RequireString("find_text")
 		if err != nil {
@@ -1166,9 +1182,9 @@ func handleInsertDocElements(getClient httpClientFunc) mcpserver.ToolHandlerFunc
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		documentID, err := request.RequireString("document_id")
+		documentID, err := requireGoogleID(request, "document_id")
 		if err != nil {
-			return mcp.NewToolResultError("document_id is required"), nil
+			return googleIDError(err, "document_id", "document_id=…"), nil
 		}
 		elementType, err := request.RequireString("element_type")
 		if err != nil {
@@ -1279,9 +1295,9 @@ func handleInsertDocImage(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		documentID, err := request.RequireString("document_id")
+		documentID, err := requireGoogleID(request, "document_id")
 		if err != nil {
-			return mcp.NewToolResultError("document_id is required"), nil
+			return googleIDError(err, "document_id", "document_id=…"), nil
 		}
 		imageSource, err := request.RequireString("image_source")
 		if err != nil {
@@ -1390,9 +1406,9 @@ func handleUpdateDocHeadersFooters(getClient httpClientFunc) mcpserver.ToolHandl
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		documentID, err := request.RequireString("document_id")
+		documentID, err := requireGoogleID(request, "document_id")
 		if err != nil {
-			return mcp.NewToolResultError("document_id is required"), nil
+			return googleIDError(err, "document_id", "document_id=…"), nil
 		}
 		sectionType, err := request.RequireString("section_type")
 		if err != nil {
@@ -1513,9 +1529,9 @@ func handleBatchUpdateDoc(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		documentID, err := request.RequireString("document_id")
+		documentID, err := requireGoogleID(request, "document_id")
 		if err != nil {
-			return mcp.NewToolResultError("document_id is required"), nil
+			return googleIDError(err, "document_id", "document_id=…"), nil
 		}
 
 		args := request.GetArguments()
@@ -1792,9 +1808,9 @@ func handleCreateTableWithData(getClient httpClientFunc) mcpserver.ToolHandlerFu
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		documentID, err := request.RequireString("document_id")
+		documentID, err := requireGoogleID(request, "document_id")
 		if err != nil {
-			return mcp.NewToolResultError("document_id is required"), nil
+			return googleIDError(err, "document_id", "document_id=…"), nil
 		}
 		index := int64(request.GetInt("index", 0))
 		boldHeaders := getBool(request, "bold_headers", true)
@@ -1989,9 +2005,9 @@ func handleUpdateParagraphStyle(getClient httpClientFunc) mcpserver.ToolHandlerF
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		documentID, err := request.RequireString("document_id")
+		documentID, err := requireGoogleID(request, "document_id")
 		if err != nil {
-			return mcp.NewToolResultError("document_id is required"), nil
+			return googleIDError(err, "document_id", "document_id=…"), nil
 		}
 		startIndex := int64(request.GetInt("start_index", 0))
 		endIndex := int64(request.GetInt("end_index", 0))
@@ -2162,12 +2178,12 @@ func handleExportDocToPDF(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		documentID, err := request.RequireString("document_id")
+		documentID, err := requireGoogleID(request, "document_id")
 		if err != nil {
-			return mcp.NewToolResultError("document_id is required"), nil
+			return googleIDError(err, "document_id", "document_id=…"), nil
 		}
 		pdfFilename := request.GetString("pdf_filename", "")
-		folderID := request.GetString("folder_id", "")
+		folderID := optionalFolderID(request, "")
 
 		driveSvc, err := newDriveService(ctx, getClient, email)
 		if err != nil {

@@ -128,9 +128,9 @@ func handleGetForm(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		if err != nil {
 			return needArg("user_google_email", "forms_get(form_id=…)"), nil
 		}
-		formID, err := request.RequireString("form_id")
+		formID, err := requireGoogleID(request, "form_id")
 		if err != nil {
-			return needArg("form_id", "forms_create(title=…) then forms_get(form_id)"), nil
+			return googleIDError(err, "form_id", "forms_create(title=…) then forms_get(form_id)"), nil
 		}
 
 		svc, err := newFormsService(ctx, getClient, email)
@@ -218,9 +218,9 @@ func handleSetPublishSettings(getClient httpClientFunc) mcpserver.ToolHandlerFun
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		formID, err := request.RequireString("form_id")
+		formID, err := requireGoogleID(request, "form_id")
 		if err != nil {
-			return mcp.NewToolResultError("form_id is required"), nil
+			return googleIDError(err, "form_id", "form_id=…"), nil
 		}
 
 		publishAsTemplate := getBool(request, "publish_as_template", false)
@@ -285,9 +285,9 @@ func handleGetFormResponse(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		formID, err := request.RequireString("form_id")
+		formID, err := requireGoogleID(request, "form_id")
 		if err != nil {
-			return mcp.NewToolResultError("form_id is required"), nil
+			return googleIDError(err, "form_id", "form_id=…"), nil
 		}
 		responseID, err := request.RequireString("response_id")
 		if err != nil {
@@ -366,9 +366,9 @@ func handleListFormResponses(getClient httpClientFunc) mcpserver.ToolHandlerFunc
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		formID, err := request.RequireString("form_id")
+		formID, err := requireGoogleID(request, "form_id")
 		if err != nil {
-			return mcp.NewToolResultError("form_id is required"), nil
+			return googleIDError(err, "form_id", "form_id=…"), nil
 		}
 
 		pageSize := request.GetInt("page_size", 10)
@@ -446,9 +446,9 @@ func handleBatchUpdateForm(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		formID, err := request.RequireString("form_id")
+		formID, err := requireGoogleID(request, "form_id")
 		if err != nil {
-			return mcp.NewToolResultError("form_id is required"), nil
+			return googleIDError(err, "form_id", "form_id=…"), nil
 		}
 
 		// Extract raw requests array — we pass these as raw JSON to the API

@@ -52,9 +52,9 @@ func TestNoFilterLoadsAllTools(t *testing.T) {
 func TestTierCoreFiltering(t *testing.T) {
 	s := newTestServer(t, server.Config{ToolTier: "core"})
 	names := registeredToolNames(t, s)
-	// Gmail core (5) + Drive core (7) + Calendar core (6, includes calendar_get_event + calendar_delete_event) + Docs core (3) + Sheets core (3) + Chat core (3) + Forms core (2) + Slides core (2) + Tasks core (6, includes tasklist list/create) + Contacts core (4) + Search core (1) + AppScript core (7) = 49.
-	if len(names) != 49 {
-		t.Errorf("expected 49 tools with core tier, got %d: %v", len(names), names)
+	// Gmail core (5) + Drive core (7) + Calendar core (6, includes calendar_get_event + calendar_delete_event) + Docs core (4) + Sheets core (4) + Chat core (3) + Forms core (2) + Slides core (2) + Tasks core (6, includes tasklist list/create) + Contacts core (4) + Search core (1) + AppScript core (7) = 51.
+	if len(names) != 51 {
+		t.Errorf("expected 51 tools with core tier, got %d: %v", len(names), names)
 	}
 	if !names["calendar_delete_event"] {
 		t.Error("expected calendar_delete_event in core tier")
@@ -166,15 +166,15 @@ func TestReadOnlyPlusTierComposition(t *testing.T) {
 	}
 
 	// Read-only + core tier: Gmail core read-only (3) + Drive core read-only (4)
-	// + Calendar core read-only (3) + Docs core read-only (1: docs_get_content) + Sheets core read-only (1: sheets_read_values)
+	// + Calendar core read-only (3) + Docs core read-only (2: docs_get_content, docs_search) + Sheets core read-only (2: sheets_read_values, sheets_list_spreadsheets)
 	// + Chat core read-only (2: chat_list_messages, chat_search_messages) + Forms core read-only (1: forms_get)
 	// + Slides core read-only (1: slides_get_presentation) + Tasks core read-only (3: tasks_get_task, tasks_list_tasks, tasks_list_tasklists)
 	// + Contacts core read-only (3: contacts_search, contacts_get, contacts_list) + Search core read-only (1: search_query)
-	// + AppScript core read-only (3: appscript_list_projects, appscript_get_project, appscript_get_content) = 26.
+	// + AppScript core read-only (3: appscript_list_projects, appscript_get_project, appscript_get_content) = 28.
 	s2 := newTestServer(t, server.Config{ReadOnly: true, ToolTier: "core"})
 	names2 := registeredToolNames(t, s2)
-	if len(names2) != 26 {
-		t.Errorf("expected 26 tools with read-only + core tier, got %d: %v", len(names2), names2)
+	if len(names2) != 28 {
+		t.Errorf("expected 28 tools with read-only + core tier, got %d: %v", len(names2), names2)
 	}
 }
 
@@ -234,8 +234,8 @@ func TestCapabilityEditPlusCore(t *testing.T) {
 	s := newTestServer(t, server.Config{ToolTier: "core", Capability: "edit"})
 	names := registeredToolNames(t, s)
 	// Core has no destructive tools, so edit does not shrink core further.
-	if len(names) != 49 {
-		t.Errorf("expected 49 tools with core+edit, got %d: %v", len(names), names)
+	if len(names) != 51 {
+		t.Errorf("expected 51 tools with core+edit, got %d: %v", len(names), names)
 	}
 	if !names["calendar_delete_event"] {
 		t.Error("expected calendar_delete_event with core+edit")
@@ -291,24 +291,26 @@ func TestLeanPresetSurface(t *testing.T) {
 }
 
 func TestEverydayPresetSurface(t *testing.T) {
-	// --preset everyday → gmail + calendar + docs + sheets + tasks + contacts + drive, core, edit ≈ 34 tools.
+	// --preset everyday → gmail + calendar + docs + sheets + tasks + contacts + drive, core, edit ≈ 36 tools.
 	s := newTestServer(t, server.Config{
 		Tools:      []string{"gmail", "calendar", "docs", "sheets", "tasks", "contacts", "drive"},
 		ToolTier:   "core",
 		Capability: "edit",
 	})
 	names := registeredToolNames(t, s)
-	if len(names) != 34 {
-		t.Errorf("expected 34 tools for everyday preset, got %d: %v", len(names), names)
+	if len(names) != 36 {
+		t.Errorf("expected 36 tools for everyday preset, got %d: %v", len(names), names)
 	}
 	for _, expected := range []string{
 		"gmail_modify_message_labels",
 		"docs_get_content",
 		"docs_create",
 		"docs_modify_text",
+		"docs_search",
 		"sheets_create_spreadsheet",
 		"sheets_read_values",
 		"sheets_modify_values",
+		"sheets_list_spreadsheets",
 		"tasks_list_tasks",
 		"tasks_get_task",
 		"tasks_create_task",
@@ -326,9 +328,6 @@ func TestEverydayPresetSurface(t *testing.T) {
 		if !names[expected] {
 			t.Errorf("expected everyday tool %q", expected)
 		}
-	}
-	if names["sheets_list_spreadsheets"] {
-		t.Error("sheets_list_spreadsheets is extended — not on everyday core")
 	}
 	if names["tasks_delete_tasklist"] {
 		t.Error("tasks_delete_tasklist is complete — not on everyday core")
@@ -376,11 +375,11 @@ func TestToolsFilterComposesWithServiceFilter(t *testing.T) {
 }
 
 func TestToolsFilterPlusTier(t *testing.T) {
-	// --tools docs --tool-tier core: docs_get_content + docs_create + docs_modify_text = 3.
+	// --tools docs --tool-tier core: docs_get_content + docs_create + docs_modify_text + docs_search = 4.
 	s := newTestServer(t, server.Config{Tools: []string{"docs"}, ToolTier: "core"})
 	names := registeredToolNames(t, s)
-	if len(names) != 3 {
-		t.Errorf("expected 3 tools with --tools docs --tool-tier core, got %d: %v", len(names), names)
+	if len(names) != 4 {
+		t.Errorf("expected 4 tools with --tools docs --tool-tier core, got %d: %v", len(names), names)
 	}
 }
 
@@ -486,11 +485,11 @@ func TestToolsDocsFiltering(t *testing.T) {
 		t.Errorf("expected 19 tools with --tools docs, got %d: %v", len(names), names)
 	}
 
-	// --tools docs --tool-tier core: docs_get_content + docs_create + docs_modify_text = 3.
+	// --tools docs --tool-tier core: docs_get_content + docs_create + docs_modify_text + docs_search = 4.
 	s2 := newTestServer(t, server.Config{Tools: []string{"docs"}, ToolTier: "core"})
 	names2 := registeredToolNames(t, s2)
-	if len(names2) != 3 {
-		t.Errorf("expected 3 tools with --tools docs --tool-tier core, got %d: %v", len(names2), names2)
+	if len(names2) != 4 {
+		t.Errorf("expected 4 tools with --tools docs --tool-tier core, got %d: %v", len(names2), names2)
 	}
 
 	// --tools docs --read-only: 6 Docs read-only + docs_read_comments = 7.
@@ -529,11 +528,11 @@ func TestToolsSheetsFiltering(t *testing.T) {
 		}
 	}
 
-	// --tools sheets --tool-tier core: 3 core Sheets tools.
+	// --tools sheets --tool-tier core: 4 core Sheets tools.
 	s2 := newTestServer(t, server.Config{Tools: []string{"sheets"}, ToolTier: "core"})
 	names2 := registeredToolNames(t, s2)
-	if len(names2) != 3 {
-		t.Errorf("expected 3 tools with --tools sheets --tool-tier core, got %d: %v", len(names2), names2)
+	if len(names2) != 4 {
+		t.Errorf("expected 4 tools with --tools sheets --tool-tier core, got %d: %v", len(names2), names2)
 	}
 
 	// --tools sheets --read-only: 3 Sheets read-only + sheets_read_comments = 4.

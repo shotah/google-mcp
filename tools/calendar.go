@@ -1052,26 +1052,8 @@ func parseRemindersJSON(s string) ([]*calendar.EventReminder, string) {
 	return result, ""
 }
 
-// extractDriveFileID extracts a Drive file ID from a URL or returns the string as-is if it's already an ID.
+// extractDriveFileID extracts a Drive/Docs/Sheets file ID from a URL or returns
+// the string as-is if it's already an ID. Prefer extractGoogleResourceID for new code.
 func extractDriveFileID(input string) string {
-	if strings.HasPrefix(input, "https://") {
-		// Try to extract file ID from various Drive URL formats
-		for _, pattern := range []string{"/d/", "/file/d/"} {
-			_, after, ok := strings.Cut(input, pattern)
-			if !ok {
-				continue
-			}
-			if slashIdx := strings.IndexAny(after, "/?"); slashIdx >= 0 {
-				return after[:slashIdx]
-			}
-			return after
-		}
-		// Try id= parameter
-		if _, after, ok := strings.Cut(input, "id="); ok {
-			before, _, _ := strings.Cut(after, "&")
-			return before
-		}
-		return ""
-	}
-	return input
+	return extractGoogleResourceID(input)
 }

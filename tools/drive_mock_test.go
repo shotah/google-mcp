@@ -125,6 +125,26 @@ func TestDriveMockSearchFiles(t *testing.T) {
 			t.Errorf("expected Report.pdf in output")
 		}
 	})
+
+	t.Run("success_share_url", func(t *testing.T) {
+		ts := driveFakeServer(t, map[string]any{
+			"/drive/v3/files/DOCID123": `{
+				"id":"DOCID123","name":"Shared Doc","mimeType":"application/vnd.google-apps.document",
+				"webViewLink":"https://docs.google.com/document/d/DOCID123/edit","modifiedTime":"2026-02-01T08:00:00Z"
+			}`,
+		})
+		handler := handleSearchDriveFiles(testClientFunc(ts))
+		text := callHandlerOK(t, handler, map[string]any{
+			"query":             "https://docs.google.com/document/d/DOCID123/edit?usp=sharing",
+			"user_google_email": "test@example.com",
+		})
+		if !strings.Contains(text, "Resolved 1 file") {
+			t.Errorf("expected URL resolve header, got:\n%s", text)
+		}
+		if !strings.Contains(text, "DOCID123") || !strings.Contains(text, "Shared Doc") {
+			t.Errorf("expected resolved file details, got:\n%s", text)
+		}
+	})
 }
 
 // --- drive_get_file_content ---

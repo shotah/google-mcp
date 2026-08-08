@@ -104,7 +104,7 @@ export USER_GOOGLE_EMAIL="you@gmail.com"  # optional but recommended
 
 Use server id **`google`** so hosts expose tools as `google__calendar_list_events` (short server + service-prefixed tool).
 
-**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks, Contacts, Drive (~34 core tools). Resolve people, find files by name, draft notes, schedule, todos:
+**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks, Contacts, Drive (~36 core tools). Resolve people, find files by name or share URL, draft notes, schedule, todos:
 
 ```json
 {
@@ -143,7 +143,7 @@ If OAuth env vars are already exported in the shell that launches your MCP clien
 | --- | --- | --- |
 | Track stats / log rows in a Sheet | `sheets` (in `everyday`) | `sheets_create_spreadsheet`, then `sheets_modify_values` / `sheets_read_values` |
 | Draft / edit a Doc | `docs` (in `everyday`) | `docs_create` / `docs_get_content` / `docs_modify_text` |
-| Find a file / Doc by name | `drive` (in `everyday`) | `drive_search_files`, then Docs/Sheets tools with the id |
+| Find a file / Doc by name or share URL | `drive` / `docs` / `sheets` (in `everyday`) | paste a share URL into `docs_get_content` / `sheets_read_values`, or `drive_search_files` / `docs_search` / `sheets_list_spreadsheets` by title |
 | Find a sheet by name (Sheets-only) | `sheets` + `--tool-tier extended` | `sheets_list_spreadsheets` (uses Drive API under the hood) |
 | Invite / email someone by name | `contacts` (in `everyday`) | `contacts_search` → email → calendar/gmail |
 | Tasks / todos | `tasks` (in `everyday`) | Use `task_list_id="@default"` for the account default list |
@@ -185,7 +185,7 @@ A browser opens; after you approve, tokens land in `~/.google_workspace_mcp/cred
 
 | Preset | Services | Tier / capability | ~Tools | Use when |
 | --- | --- | --- | --- | --- |
-| `everyday` | gmail, calendar, docs, sheets, tasks, contacts, drive | core / edit | ~34 | Personal assistant (recommended) |
+| `everyday` | gmail, calendar, docs, sheets, tasks, contacts, drive | core / edit | ~36 | Personal assistant (recommended) |
 | `lean` | gmail, calendar | core / edit | ~11 | Tiny local models; mail + calendar only |
 
 ### Tool tiers (how deep each service goes)

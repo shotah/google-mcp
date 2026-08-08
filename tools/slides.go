@@ -112,9 +112,9 @@ func handleGetPresentation(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		if err != nil {
 			return needArg("user_google_email", "slides_get_presentation(presentation_id=…)"), nil
 		}
-		presID, err := request.RequireString("presentation_id")
+		presID, err := requireGoogleID(request, "presentation_id")
 		if err != nil {
-			return needArg("presentation_id", "slides_create_presentation(title=…) then slides_get_presentation(presentation_id)"), nil
+			return googleIDError(err, "presentation_id", "slides_create_presentation(title=…) then slides_get_presentation(presentation_id)"), nil
 		}
 
 		svc, err := newSlidesService(ctx, getClient, email)
@@ -257,9 +257,9 @@ func handleBatchUpdatePresentation(getClient httpClientFunc) mcpserver.ToolHandl
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		presID, err := request.RequireString("presentation_id")
+		presID, err := requireGoogleID(request, "presentation_id")
 		if err != nil {
-			return mcp.NewToolResultError("presentation_id is required"), nil
+			return googleIDError(err, "presentation_id", "presentation_id=…"), nil
 		}
 
 		args := request.GetArguments()
@@ -338,9 +338,9 @@ func handleGetPage(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		presID, err := request.RequireString("presentation_id")
+		presID, err := requireGoogleID(request, "presentation_id")
 		if err != nil {
-			return mcp.NewToolResultError("presentation_id is required"), nil
+			return googleIDError(err, "presentation_id", "presentation_id=…"), nil
 		}
 		pageID, err := request.RequireString("page_object_id")
 		if err != nil {
@@ -441,9 +441,9 @@ func handleGetPageThumbnail(getClient httpClientFunc) mcpserver.ToolHandlerFunc 
 		if err != nil {
 			return mcp.NewToolResultError("user_google_email is required"), nil
 		}
-		presID, err := request.RequireString("presentation_id")
+		presID, err := requireGoogleID(request, "presentation_id")
 		if err != nil {
-			return mcp.NewToolResultError("presentation_id is required"), nil
+			return googleIDError(err, "presentation_id", "presentation_id=…"), nil
 		}
 		pageID, err := request.RequireString("page_object_id")
 		if err != nil {

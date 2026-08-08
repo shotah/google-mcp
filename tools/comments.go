@@ -20,7 +20,7 @@ func RegisterCommentTools(s *mcpserver.MCPServer, getClient httpClientFunc, serv
 		service+"_read_comments",
 		mcp.WithDescription(fmt.Sprintf("List comments on a %s. Required %s. Not file body — use %s read tools.", appName, fileIDParam, service)),
 		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
-		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(strings.ReplaceAll(fileIDParam, "_", " ")+" id.")),
+		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(strings.ReplaceAll(fileIDParam, "_", " ")+" id or share URL.")),
 	), makeReadCommentsHandler(getClient, service, appName, fileIDParam))
 
 	// {service}_create_comment
@@ -28,7 +28,7 @@ func RegisterCommentTools(s *mcpserver.MCPServer, getClient httpClientFunc, serv
 		service+"_create_comment",
 		mcp.WithDescription(fmt.Sprintf("Add a comment on a %s. Required %s + comment_content. Reply → %s_reply_to_comment.", appName, fileIDParam, service)),
 		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
-		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(strings.ReplaceAll(fileIDParam, "_", " ")+" id.")),
+		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(strings.ReplaceAll(fileIDParam, "_", " ")+" id or share URL.")),
 		mcp.WithString("comment_content", mcp.Required(), mcp.Description("Comment text.")),
 	), makeCreateCommentHandler(getClient, service, fileIDParam))
 
@@ -37,7 +37,7 @@ func RegisterCommentTools(s *mcpserver.MCPServer, getClient httpClientFunc, serv
 		service+"_reply_to_comment",
 		mcp.WithDescription(fmt.Sprintf("Reply to comment_id on a %s. Required %s, comment_id, reply_content. Ids from %s_read_comments.", appName, fileIDParam, service)),
 		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
-		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(strings.ReplaceAll(fileIDParam, "_", " ")+" id.")),
+		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(strings.ReplaceAll(fileIDParam, "_", " ")+" id or share URL.")),
 		mcp.WithString("comment_id", mcp.Required(), mcp.Description("Comment id from "+service+"_read_comments.")),
 		mcp.WithString("reply_content", mcp.Required(), mcp.Description("Reply text.")),
 	), makeReplyToCommentHandler(getClient, service, fileIDParam))
@@ -47,7 +47,7 @@ func RegisterCommentTools(s *mcpserver.MCPServer, getClient httpClientFunc, serv
 		service+"_resolve_comment",
 		mcp.WithDescription(fmt.Sprintf("Resolve (close) comment_id on a %s. Required %s + comment_id. Destructive — confirm when unclear.", appName, fileIDParam)),
 		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
-		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(strings.ReplaceAll(fileIDParam, "_", " ")+" id.")),
+		mcp.WithString(fileIDParam, mcp.Required(), mcp.Description(strings.ReplaceAll(fileIDParam, "_", " ")+" id or share URL.")),
 		mcp.WithString("comment_id", mcp.Required(), mcp.Description("Comment id from "+service+"_read_comments.")),
 	), makeResolveCommentHandler(getClient, service, fileIDParam))
 }
@@ -68,9 +68,9 @@ func makeReadCommentsHandler(getClient httpClientFunc, service, appName, fileIDP
 		if err != nil {
 			return needArg("user_google_email", fmt.Sprintf("%s(%s=…)", toolName, fileIDParam)), nil
 		}
-		fileID, err := request.RequireString(fileIDParam)
+		fileID, err := requireGoogleID(request, fileIDParam)
 		if err != nil {
-			return needArg(fileIDParam, fmt.Sprintf("%s(%s=…)", toolName, fileIDParam)), nil
+			return googleIDError(err, fileIDParam, fmt.Sprintf("%s(%s=…)", toolName, fileIDParam)), nil
 		}
 
 		svc, err := newDriveService(ctx, getClient, email)
@@ -134,9 +134,9 @@ func makeCreateCommentHandler(getClient httpClientFunc, service, fileIDParam str
 		if err != nil {
 			return needArg("user_google_email", fmt.Sprintf("%s(%s, comment_content=…)", toolName, fileIDParam)), nil
 		}
-		fileID, err := request.RequireString(fileIDParam)
+		fileID, err := requireGoogleID(request, fileIDParam)
 		if err != nil {
-			return needArg(fileIDParam, fmt.Sprintf("%s(%s, comment_content=…)", toolName, fileIDParam)), nil
+			return googleIDError(err, fileIDParam, fmt.Sprintf("%s(%s, comment_content=…)", toolName, fileIDParam)), nil
 		}
 		content, err := request.RequireString("comment_content")
 		if err != nil {
@@ -175,9 +175,9 @@ func makeReplyToCommentHandler(getClient httpClientFunc, service, fileIDParam st
 		if err != nil {
 			return needArg("user_google_email", fmt.Sprintf("%s(%s, comment_id, reply_content=…)", toolName, fileIDParam)), nil
 		}
-		fileID, err := request.RequireString(fileIDParam)
+		fileID, err := requireGoogleID(request, fileIDParam)
 		if err != nil {
-			return needArg(fileIDParam, fmt.Sprintf("%s(%s, comment_id, reply_content=…)", toolName, fileIDParam)), nil
+			return googleIDError(err, fileIDParam, fmt.Sprintf("%s(%s, comment_id, reply_content=…)", toolName, fileIDParam)), nil
 		}
 		commentID, err := request.RequireString("comment_id")
 		if err != nil {
@@ -220,9 +220,9 @@ func makeResolveCommentHandler(getClient httpClientFunc, service, fileIDParam st
 		if err != nil {
 			return needArg("user_google_email", fmt.Sprintf("%s(%s, comment_id=…)", toolName, fileIDParam)), nil
 		}
-		fileID, err := request.RequireString(fileIDParam)
+		fileID, err := requireGoogleID(request, fileIDParam)
 		if err != nil {
-			return needArg(fileIDParam, fmt.Sprintf("%s(%s, comment_id=…)", toolName, fileIDParam)), nil
+			return googleIDError(err, fileIDParam, fmt.Sprintf("%s(%s, comment_id=…)", toolName, fileIDParam)), nil
 		}
 		commentID, err := request.RequireString("comment_id")
 		if err != nil {
