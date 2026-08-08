@@ -233,6 +233,36 @@ func TestParseFlagsInvalidPreset(t *testing.T) {
 	}
 }
 
+func TestRunAuthCommand_DispatchURL(t *testing.T) {
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-cid")
+	t.Setenv("GOOGLE_OAUTH_CLIENT_SECRET", "test-csecret")
+	t.Setenv("GOOGLE_OAUTH_REDIRECT_URI", "")
+	t.Setenv("WORKSPACE_MCP_CREDENTIALS_DIR", t.TempDir())
+
+	err := runAuthCommand([]string{"url"})
+	if err != nil {
+		t.Fatalf("runAuthCommand url: %v", err)
+	}
+}
+
+func TestRunAuthCommand_ExchangeMissingCode(t *testing.T) {
+	err := runAuthCommand([]string{"exchange"})
+	if err == nil {
+		t.Fatal("expected error for exchange without code")
+	}
+}
+
+func TestRunAuthCommand_ExchangeNoPending(t *testing.T) {
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "cid")
+	t.Setenv("GOOGLE_OAUTH_CLIENT_SECRET", "csecret")
+	t.Setenv("WORKSPACE_MCP_CREDENTIALS_DIR", t.TempDir())
+
+	err := runAuthCommand([]string{"exchange", "some-code"})
+	if err == nil {
+		t.Fatal("expected error when no pending session exists")
+	}
+}
+
 func TestParseAuthArgs(t *testing.T) {
 	t.Setenv("USER_GOOGLE_EMAIL", "")
 

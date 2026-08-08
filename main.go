@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -101,11 +102,21 @@ func run() error {
 }
 
 // runAuthCommand performs first-time (or re-auth) Google OAuth for humans.
-// Usage: google-mcp auth [--email you@gmail.com]
-//
-//	google-mcp auth you@gmail.com
-//	google-mcp login  (alias)
+// Sub-commands "url" and "exchange" support the non-interactive flow used
+// by gantry; bare invocation falls through to RunInteractiveAuth.
 func runAuthCommand(args []string) error {
+	if len(args) > 0 {
+		switch args[0] {
+		case "url":
+			return runAuthURLCommand()
+		case "exchange":
+			if len(args) < 2 {
+				return errors.New("usage: google-mcp auth exchange <code>")
+			}
+			return runAuthExchangeCommand(args[1])
+		}
+	}
+
 	email, err := parseAuthArgs(args)
 	if err != nil {
 		return err
@@ -121,6 +132,29 @@ func runAuthCommand(args []string) error {
 	fmt.Printf("Credentials saved to %s\n", path)
 	fmt.Println("Copy this file onto the agent host if needed, then start the MCP server (e.g. google-mcp --preset lean).")
 	fmt.Println("Access tokens refresh automatically; you do not need to call auth_start from the agent.")
+	return nil
+}
+
+func runAuthURLCommand() error {
+	store := auth.NewCredentialStore()
+	authURL, err := auth.GenerateAuthURL(store.Dir)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("open %s\n", authURL)
+	fmt.Println("then paste the code: /auth google <code>")
+	fmt.Println("guide: https://github.com/shotah/ai-gantry/blob/main/docs/auth.md")
+	return nil
+}
+
+func runAuthExchangeCommand(code string) error {
+	store := auth.NewCredentialStore()
+	email, path, err := auth.ExchangeAuthCode(context.Background(), store.Dir, code, store)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("google: authorized ✓ (tokens → %s)\n", path)
+	_ = email
 	return nil
 }
 
