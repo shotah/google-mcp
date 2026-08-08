@@ -46,8 +46,16 @@ Reuse credentials from the [Python server](https://github.com/taylorwilsdon/goog
 
 1. Open [Google Cloud Console](https://console.cloud.google.com/)
 2. Create or select a project → **APIs & Services → OAuth consent screen**
-3. **Credentials → Create Credentials → OAuth Client ID → Desktop Application**
-4. Copy the **Client ID** and **Client Secret**
+3. **Credentials → Create Credentials → OAuth Client ID**:
+   - **Desktop Application** — laptop `google-mcp auth` (`http://localhost:4100/oauth2callback`)
+   - **Web application** — headless / chat paste flow (required for the GitHub Pages
+     catch URI). Authorized redirect URI **exactly**:
+     `https://shotah.github.io/ai-gantry/oauth-catch/`
+     (trailing slash matters). Optional: also add the localhost URI on the same
+     Web client. Forks may reuse that catch page or set `GOOGLE_OAUTH_REDIRECT_URI`
+     to their own Pages copy — see
+     [ai-gantry docs/auth.md](https://github.com/shotah/ai-gantry/blob/main/docs/auth.md).
+4. Copy the **Client ID** and **Client Secret** (Web client if you use chat `/auth`)
 5. Enable only the APIs you need:
 
 <details>
@@ -166,6 +174,11 @@ google-mcp auth
 
 A browser opens; after you approve, tokens land in `~/.google_workspace_mcp/credentials/{email}.json`. You can copy that file onto an agent host. The MCP server refreshes access tokens automatically on API calls — small models should not be asked to call `auth_start`.
 
+Headless / Telegram (no inbound ports): `google-mcp auth url` then
+`google-mcp auth exchange <code>` — needs a **Web application** client and the
+catch URI above. Hosted guide:
+[ai-gantry docs/auth.md](https://github.com/shotah/ai-gantry/blob/main/docs/auth.md).
+
 > `auth_start` remains only as a rare re-auth escape hatch (gmail / complete tier). Lean surfaces omit it.
 
 ## Configuration
@@ -175,6 +188,8 @@ A browser opens; after you approve, tokens land in `~/.google_workspace_mcp/cred
 | Flag / command | Description | Default |
 | --- | --- | --- |
 | `auth` / `login` | First-time OAuth (human CLI); writes credential JSON | — |
+| `auth url` | Print authorize URL + hold PKCE pending (~10 min) for chat paste | — |
+| `auth exchange <code>` | Exchange pasted code → credentials on disk | — |
 | `--preset` | Named surface (see below) | unset |
 | `--tools` | Services to enable (e.g. `gmail calendar docs sheets`) | all |
 | `--tool-tier` | Depth: `core`, `extended`, or `complete` | `complete` |
@@ -217,6 +232,7 @@ Withheld under `edit`: `drive_transfer_ownership`, `contacts_batch_delete`, `tas
 | `GOOGLE_OAUTH_CLIENT_ID` | Yes | OAuth 2.0 Client ID |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | Yes | OAuth 2.0 Client Secret |
 | `USER_GOOGLE_EMAIL` | No | Default account email |
+| `GOOGLE_OAUTH_REDIRECT_URI` | No | Override catch-page redirect for `auth url` / `exchange` (default: `https://shotah.github.io/ai-gantry/oauth-catch/`) |
 | `WORKSPACE_MCP_CREDENTIALS_DIR` | No | Override credential directory |
 | `GOOGLE_PSE_API_KEY` | No | Programmable Search Engine key |
 | `GOOGLE_PSE_ENGINE_ID` | No | Programmable Search Engine ID |
