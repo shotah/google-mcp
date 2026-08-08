@@ -42,7 +42,7 @@ func TestGenerateAuthURL_Success(t *testing.T) {
 		t.Errorf("URL missing state: %s", authURL)
 	}
 
-	defaultURI := "https%3A%2F%2Fshotah.github.io%2Foauth-catch%2F"
+	defaultURI := "https%3A%2F%2Fshotah.github.io%2Fai-gantry%2Foauth-catch%2F"
 	if !strings.Contains(authURL, defaultURI) {
 		t.Errorf("URL missing default redirect URI: %s", authURL)
 	}

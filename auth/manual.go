@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	defaultRedirectURI = "https://shotah.github.io/oauth-catch/"
+	defaultRedirectURI = "https://shotah.github.io/ai-gantry/oauth-catch/"
 	googleTokenURL     = "https://oauth2.googleapis.com/token"
 )
 
