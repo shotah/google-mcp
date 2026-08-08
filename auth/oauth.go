@@ -7,7 +7,11 @@ import (
 )
 
 // DefaultScopes contains the OAuth2 scopes required by the MCP server.
+// userinfo.email / openid are required so post-auth email resolution works
+// (chat /auth and interactive auth both call the userinfo endpoint).
 var DefaultScopes = []string{
+	"openid",
+	"https://www.googleapis.com/auth/userinfo.email",
 	"https://www.googleapis.com/auth/gmail.modify",
 	"https://www.googleapis.com/auth/drive",
 	"https://www.googleapis.com/auth/calendar",

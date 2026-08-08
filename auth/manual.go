@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -141,7 +142,12 @@ func ExchangeAuthCodeWithTokenURL(
 
 	email, err = fetchUserEmailFn(tok)
 	if err != nil {
-		return "", "", fmt.Errorf("fetch user email: %w", err)
+		// Same fallback as interactive auth: operator-supplied email.
+		if fallback := strings.TrimSpace(os.Getenv("USER_GOOGLE_EMAIL")); fallback != "" {
+			email = fallback
+		} else {
+			return "", "", fmt.Errorf("fetch user email: %w", err)
+		}
 	}
 
 	cred := &StoredCredential{

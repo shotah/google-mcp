@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -360,6 +361,18 @@ func startCallbackServer(expectedState string, resultCh chan<- CallbackResult) (
 
 // fetchUserEmail fetches the authenticated user's email address using the OAuth2 userinfo endpoint.
 func fetchUserEmail(tok *oauth2.Token) (string, error) {
+	if tok == nil {
+		return "", errors.New("nil OAuth token")
+	}
+	// Prefer email from the OIDC id_token when present (works even if userinfo
+	// scopes were missing on older authorize URLs).
+	if email := emailFromIDToken(tok); email != "" {
+		return email, nil
+	}
+	if strings.TrimSpace(tok.AccessToken) == "" {
+		return "", errors.New("OAuth token has empty access_token")
+	}
+
 	client := &http.Client{Timeout: 10 * time.Second}
 	req, err := http.NewRequest(http.MethodGet, "https://www.googleapis.com/oauth2/v2/userinfo", http.NoBody)
 	if err != nil {
@@ -388,4 +401,31 @@ func fetchUserEmail(tok *oauth2.Token) (string, error) {
 		return "", errors.New("no email in userinfo response")
 	}
 	return info.Email, nil
+}
+
+// emailFromIDToken pulls the email claim from an OIDC id_token without verifying
+// the JWT signature — we already got the token from Google's token endpoint.
+func emailFromIDToken(tok *oauth2.Token) string {
+	if tok == nil {
+		return ""
+	}
+	raw, ok := tok.Extra("id_token").(string)
+	if !ok || raw == "" {
+		return ""
+	}
+	parts := strings.Split(raw, ".")
+	if len(parts) < 2 {
+		return ""
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return ""
+	}
+	var claims struct {
+		Email string `json:"email"`
+	}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(claims.Email)
 }
