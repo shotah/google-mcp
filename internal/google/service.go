@@ -78,10 +78,13 @@ func (c *ClientCache) GetAuthenticatedClient(ctx context.Context, userEmail stri
 		return nil, fmt.Errorf("no credentials found for %s; run: google-mcp auth", userEmail)
 	}
 
-	// oauth2.Config.Client returns an *http.Client whose Transport
-	// automatically refreshes expired access tokens using the refresh token.
-	// Agents should not call auth_start for routine use — CLI setup + this refresh is enough.
-	client := cred.Config.Client(ctx, cred.Token)
+	// oauth2.Config.Client binds the *request* context into the TokenSource used
+	// for every future refresh. We cache this client across tool calls, so a
+	// canceled MCP/tool ctx would poison refresh with:
+	//   Post "https://oauth2.googleapis.com/token": context canceled
+	// Detach cancel/deadline; keep ctx values (custom HTTP client, etc.).
+	oauthCtx := context.WithoutCancel(ctx)
+	client := cred.Config.Client(oauthCtx, cred.Token)
 
 	c.clients[userEmail] = &cachedClient{
 		client: client,

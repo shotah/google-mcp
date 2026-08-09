@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"sync"
@@ -95,6 +97,77 @@ func TestGetAuthenticatedClient_CachesClient(t *testing.T) {
 	// Same pointer means the client was cached.
 	if client1 != client2 {
 		t.Error("expected same client instance from cache")
+	}
+}
+
+func TestGetAuthenticatedClient_CanceledCtxDoesNotPoisonRefresh(t *testing.T) {
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "")
+	t.Setenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
+
+	refreshHits := 0
+	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		refreshHits++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"access_token":"refreshed-access","expires_in":3600,"token_type":"Bearer"}`))
+	}))
+	t.Cleanup(tokenSrv.Close)
+
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Authorization"); got != "Bearer refreshed-access" {
+			http.Error(w, "bad auth "+got, http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	t.Cleanup(apiSrv.Close)
+
+	dir := t.TempDir()
+	email := "refresh@example.com"
+	cred := map[string]any{
+		"token":         "expired-access",
+		"refresh_token": "refresh-token-456",
+		"token_uri":     tokenSrv.URL,
+		"client_id":     "test-client-id",
+		"client_secret": "test-client-secret",
+		"scopes":        []string{"https://www.googleapis.com/auth/gmail.modify"},
+		// Already expired → first API call must refresh.
+		"expiry": time.Now().Add(-time.Hour).UTC().Format(time.RFC3339),
+	}
+	data, err := json.MarshalIndent(cred, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, email+".json"), data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	store := &auth.LocalDirectoryCredentialStore{Dir: dir}
+	cache := NewClientCache(store)
+
+	// Simulate MCP tool ctx that is canceled after the client is cached
+	// (turn end / interrupt). Refresh must not use that canceled ctx.
+	ctx, cancel := context.WithCancel(context.Background())
+	client, err := cache.GetAuthenticatedClient(ctx, email)
+	if err != nil {
+		t.Fatalf("GetAuthenticatedClient: %v", err)
+	}
+	cancel()
+
+	req, err := http.NewRequest(http.MethodGet, apiSrv.URL, http.NoBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("API call after canceled tool ctx: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+	if refreshHits < 1 {
+		t.Fatal("expected token refresh hit")
 	}
 }
 
