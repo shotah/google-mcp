@@ -112,7 +112,7 @@ export USER_GOOGLE_EMAIL="you@gmail.com"  # optional but recommended
 
 Use server id **`google`** so hosts expose tools as `google__calendar_list_events` (short server + service-prefixed tool).
 
-**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks, Contacts, Drive (~36 core tools). Resolve people, find files by name or share URL, draft notes, schedule, todos:
+**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks, Contacts, Drive (~37 core tools). Resolve people, find files by name or share URL, draft notes, schedule, todos:
 
 ```json
 {
@@ -130,7 +130,7 @@ Use server id **`google`** so hosts expose tools as `google__calendar_list_event
 }
 ```
 
-**Tiny local models** (e.g. Qwen 35B) — starve harder with `--preset lean` (~11 tools: Gmail + Calendar only).
+**Tiny local models** (e.g. Qwen 35B) — starve harder with `--preset lean` (~12 tools: Gmail + Calendar only).
 
 If OAuth env vars are already exported in the shell that launches your MCP client, omit the `env` block:
 
@@ -154,6 +154,7 @@ If OAuth env vars are already exported in the shell that launches your MCP clien
 | Find a file / Doc by name or share URL | `drive` / `docs` / `sheets` (in `everyday`) | paste a share URL into `docs_get_content` / `sheets_read_values`, or `drive_search_files` / `docs_search` / `sheets_list_spreadsheets` by title |
 | Find a sheet by name (Sheets-only) | `sheets` + `--tool-tier extended` | `sheets_list_spreadsheets` (uses Drive API under the hood) |
 | Invite / email someone by name | `contacts` (in `everyday`) | `contacts_search` → email → calendar/gmail |
+| Find a time between people | `calendar` (in `everyday`) | `contacts_search` → `calendar_query_freebusy` (emails in `calendar_ids`) → `calendar_create_event` with `attendees` |
 | Tasks / todos | `tasks` (in `everyday`) | Use `task_list_id="@default"` for the account default list |
 
 OAuth already requests Drive + Docs + Sheets + People scopes on `google-mcp auth`. Trim with `--tools` if a persona needs a smaller surface.
@@ -200,8 +201,8 @@ catch URI above. Hosted guide:
 
 | Preset | Services | Tier / capability | ~Tools | Use when |
 | --- | --- | --- | --- | --- |
-| `everyday` | gmail, calendar, docs, sheets, tasks, contacts, drive | core / edit | ~36 | Personal assistant (recommended) |
-| `lean` | gmail, calendar | core / edit | ~11 | Tiny local models; mail + calendar only |
+| `everyday` | gmail, calendar, docs, sheets, tasks, contacts, drive | core / edit | ~37 | Personal assistant (recommended) |
+| `lean` | gmail, calendar | core / edit | ~12 | Tiny local models; mail + calendar only |
 
 ### Tool tiers (how deep each service goes)
 
@@ -329,7 +330,7 @@ Same credentials work in both. Tool **names** diverge on purpose for agent routi
 | `calendar_create_event`   | core     | Create calendar event      |
 | `calendar_update_event`   | core     | Update event details       |
 | `calendar_delete_event`   | core     | Delete event               |
-| `calendar_query_freebusy` | extended | Check availability         |
+| `calendar_query_freebusy` | core     | Mutual free/busy (multi-calendar) |
 
 ### Google Docs (19 tools)
 

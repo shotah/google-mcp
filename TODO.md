@@ -30,8 +30,8 @@ compound (`google-workspace`). Hosts expose `{server}__{tool}`, so both halves m
 }
 ```
 
-- `everyday` = gmail+calendar+docs+sheets+tasks+contacts+drive, core, edit ≈ 34 tools (personal assistant).
-- `lean` = gmail+calendar only ≈ 11 tools (tiny models).
+- `everyday` = gmail+calendar+docs+sheets+tasks+contacts+drive, core, edit ≈ 37 tools (personal assistant).
+- `lean` = gmail+calendar only ≈ 12 tools (tiny models).
 
 ## Rename map
 

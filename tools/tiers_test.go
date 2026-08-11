@@ -52,9 +52,9 @@ func TestNoFilterLoadsAllTools(t *testing.T) {
 func TestTierCoreFiltering(t *testing.T) {
 	s := newTestServer(t, server.Config{ToolTier: "core"})
 	names := registeredToolNames(t, s)
-	// Gmail core (5) + Drive core (7) + Calendar core (6, includes calendar_get_event + calendar_delete_event) + Docs core (4) + Sheets core (4) + Chat core (3) + Forms core (2) + Slides core (2) + Tasks core (6, includes tasklist list/create) + Contacts core (4) + Search core (1) + AppScript core (7) = 51.
-	if len(names) != 51 {
-		t.Errorf("expected 51 tools with core tier, got %d: %v", len(names), names)
+	// Gmail core (5) + Drive core (7) + Calendar core (7, includes freebusy + delete) + Docs core (4) + Sheets core (4) + Chat core (3) + Forms core (2) + Slides core (2) + Tasks core (6, includes tasklist list/create) + Contacts core (4) + Search core (1) + AppScript core (7) = 52.
+	if len(names) != 52 {
+		t.Errorf("expected 52 tools with core tier, got %d: %v", len(names), names)
 	}
 	if !names["calendar_delete_event"] {
 		t.Error("expected calendar_delete_event in core tier")
@@ -166,15 +166,15 @@ func TestReadOnlyPlusTierComposition(t *testing.T) {
 	}
 
 	// Read-only + core tier: Gmail core read-only (3) + Drive core read-only (4)
-	// + Calendar core read-only (3) + Docs core read-only (2: docs_get_content, docs_search) + Sheets core read-only (2: sheets_read_values, sheets_list_spreadsheets)
+	// + Calendar core read-only (4, includes freebusy) + Docs core read-only (2: docs_get_content, docs_search) + Sheets core read-only (2: sheets_read_values, sheets_list_spreadsheets)
 	// + Chat core read-only (2: chat_list_messages, chat_search_messages) + Forms core read-only (1: forms_get)
 	// + Slides core read-only (1: slides_get_presentation) + Tasks core read-only (3: tasks_get_task, tasks_list_tasks, tasks_list_tasklists)
 	// + Contacts core read-only (3: contacts_search, contacts_get, contacts_list) + Search core read-only (1: search_query)
-	// + AppScript core read-only (3: appscript_list_projects, appscript_get_project, appscript_get_content) = 28.
+	// + AppScript core read-only (3: appscript_list_projects, appscript_get_project, appscript_get_content) = 29.
 	s2 := newTestServer(t, server.Config{ReadOnly: true, ToolTier: "core"})
 	names2 := registeredToolNames(t, s2)
-	if len(names2) != 28 {
-		t.Errorf("expected 28 tools with read-only + core tier, got %d: %v", len(names2), names2)
+	if len(names2) != 29 {
+		t.Errorf("expected 29 tools with read-only + core tier, got %d: %v", len(names2), names2)
 	}
 }
 
@@ -234,8 +234,8 @@ func TestCapabilityEditPlusCore(t *testing.T) {
 	s := newTestServer(t, server.Config{ToolTier: "core", Capability: "edit"})
 	names := registeredToolNames(t, s)
 	// Core has no destructive tools, so edit does not shrink core further.
-	if len(names) != 51 {
-		t.Errorf("expected 51 tools with core+edit, got %d: %v", len(names), names)
+	if len(names) != 52 {
+		t.Errorf("expected 52 tools with core+edit, got %d: %v", len(names), names)
 	}
 	if !names["calendar_delete_event"] {
 		t.Error("expected calendar_delete_event with core+edit")
@@ -255,15 +255,15 @@ func TestReadOnlyOverridesCapability(t *testing.T) {
 }
 
 func TestLeanPresetSurface(t *testing.T) {
-	// --preset lean → gmail + calendar, core, edit ≈ 11 tools (auth_start is complete-tier only).
+	// --preset lean → gmail + calendar, core, edit ≈ 12 tools (auth_start is complete-tier only).
 	s := newTestServer(t, server.Config{
 		Tools:      []string{"gmail", "calendar"},
 		ToolTier:   "core",
 		Capability: "edit",
 	})
 	names := registeredToolNames(t, s)
-	if len(names) != 11 {
-		t.Errorf("expected 11 tools for lean preset, got %d: %v", len(names), names)
+	if len(names) != 12 {
+		t.Errorf("expected 12 tools for lean preset, got %d: %v", len(names), names)
 	}
 	for _, expected := range []string{
 		"gmail_search_messages",
@@ -277,6 +277,7 @@ func TestLeanPresetSurface(t *testing.T) {
 		"calendar_create_event",
 		"calendar_update_event",
 		"calendar_delete_event",
+		"calendar_query_freebusy",
 	} {
 		if !names[expected] {
 			t.Errorf("expected lean tool %q", expected)
@@ -291,15 +292,15 @@ func TestLeanPresetSurface(t *testing.T) {
 }
 
 func TestEverydayPresetSurface(t *testing.T) {
-	// --preset everyday → gmail + calendar + docs + sheets + tasks + contacts + drive, core, edit ≈ 36 tools.
+	// --preset everyday → gmail + calendar + docs + sheets + tasks + contacts + drive, core, edit ≈ 37 tools.
 	s := newTestServer(t, server.Config{
 		Tools:      []string{"gmail", "calendar", "docs", "sheets", "tasks", "contacts", "drive"},
 		ToolTier:   "core",
 		Capability: "edit",
 	})
 	names := registeredToolNames(t, s)
-	if len(names) != 36 {
-		t.Errorf("expected 36 tools for everyday preset, got %d: %v", len(names), names)
+	if len(names) != 37 {
+		t.Errorf("expected 37 tools for everyday preset, got %d: %v", len(names), names)
 	}
 	for _, expected := range []string{
 		"gmail_modify_message_labels",
@@ -324,6 +325,7 @@ func TestEverydayPresetSurface(t *testing.T) {
 		"drive_search_files",
 		"drive_get_file_content",
 		"drive_share_file",
+		"calendar_query_freebusy",
 	} {
 		if !names[expected] {
 			t.Errorf("expected everyday tool %q", expected)
@@ -459,14 +461,17 @@ func TestToolsCalendarFiltering(t *testing.T) {
 		t.Errorf("expected 7 tools with --tools calendar, got %d: %v", len(names), names)
 	}
 
-	// --tools calendar --tool-tier core: 6 core Calendar tools (includes calendar_delete_event).
+	// --tools calendar --tool-tier core: 7 core Calendar tools (includes freebusy + delete).
 	s2 := newTestServer(t, server.Config{Tools: []string{"calendar"}, ToolTier: "core"})
 	names2 := registeredToolNames(t, s2)
-	if len(names2) != 6 {
-		t.Errorf("expected 6 tools with --tools calendar --tool-tier core, got %d: %v", len(names2), names2)
+	if len(names2) != 7 {
+		t.Errorf("expected 7 tools with --tools calendar --tool-tier core, got %d: %v", len(names2), names2)
 	}
 	if !names2["calendar_delete_event"] {
 		t.Error("expected calendar_delete_event with --tools calendar --tool-tier core")
+	}
+	if !names2["calendar_query_freebusy"] {
+		t.Error("expected calendar_query_freebusy with --tools calendar --tool-tier core")
 	}
 
 	// --tools calendar --read-only: 4 Calendar read-only tools.

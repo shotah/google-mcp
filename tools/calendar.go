@@ -241,7 +241,7 @@ func handleGetEvent(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerCreateEvent(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := newMCPTool("calendar_create_event",
-		mcp.WithDescription("Create a new calendar event. Required: summary, start_time, end_time (RFC3339). Existing event → calendar_update_event(event_id)."),
+		mcp.WithDescription("Create an event; optional attendees get invited (send_updates defaults to all). Required: summary, start_time, end_time. Mutual free time → calendar_query_freebusy first. Existing → calendar_update_event."),
 		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
 		mcp.WithString("summary", mcp.Required(), mcp.Description("Event title.")),
 		mcp.WithString("start_time", mcp.Required(), mcp.Description("Start RFC3339 or YYYY-MM-DD (all-day).")),
@@ -249,7 +249,8 @@ func registerCreateEvent(s *mcpserver.MCPServer, getClient httpClientFunc) {
 		mcp.WithString("calendar_id", mcp.Description("Calendar id. Default: primary.")),
 		mcp.WithString("description", mcp.Description("Event description.")),
 		mcp.WithString("location", mcp.Description("Event location / address.")),
-		mcp.WithArray("attendees", mcp.Description("Attendee emails."), mcp.Items(map[string]any{"type": "string"})),
+		mcp.WithArray("attendees", mcp.Description("Guest emails to invite."), mcp.Items(map[string]any{"type": "string"})),
+		mcp.WithString("send_updates", mcp.Description("Invite email policy: all (default when attendees set), externalOnly, or none.")),
 		mcp.WithString("timezone", mcp.Description("Timezone (e.g. America/Los_Angeles).")),
 		mcp.WithBoolean("add_google_meet", mcp.Description("Add Google Meet. Default: false.")),
 	)
@@ -406,10 +407,18 @@ func handleCreateEvent(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 			}
 		}
 
+		sendUpdates, errMsg := resolveSendUpdates(request, len(attendees) > 0)
+		if errMsg != "" {
+			return mcp.NewToolResultError(errMsg), nil
+		}
+
 		call := svc.Events.Insert(calendarID, eventBody).
 			ConferenceDataVersion(conferenceDataVersion)
 		if len(attachmentIDs) > 0 {
 			call = call.SupportsAttachments(true)
+		}
+		if sendUpdates != "" {
+			call = call.SendUpdates(sendUpdates)
 		}
 
 		created, err := call.Do()
@@ -443,7 +452,7 @@ func handleCreateEvent(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerModifyEvent(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := newMCPTool("calendar_update_event",
-		mcp.WithDescription("Update an existing event. Required: event_id from calendar_list_events. New event → calendar_create_event. Missing id → calendar_list_events first."),
+		mcp.WithDescription("Update an event (time/guests/location). Required: event_id. Guests notified by default when the event has attendees (send_updates). New event → calendar_create_event. Missing id → calendar_list_events."),
 		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
 		mcp.WithString("event_id", mcp.Required(), mcp.Description("Opaque event id from calendar_list_events (ID: …).")),
 		mcp.WithString("calendar_id", mcp.Description("Calendar id. Default: primary.")),
@@ -452,7 +461,8 @@ func registerModifyEvent(s *mcpserver.MCPServer, getClient httpClientFunc) {
 		mcp.WithString("end_time", mcp.Description("New end RFC3339 or YYYY-MM-DD.")),
 		mcp.WithString("description", mcp.Description("New description.")),
 		mcp.WithString("location", mcp.Description("New location / address.")),
-		mcp.WithArray("attendees", mcp.Description("Attendee emails."), mcp.Items(map[string]any{"type": "string"})),
+		mcp.WithArray("attendees", mcp.Description("Guest emails (replaces list)."), mcp.Items(map[string]any{"type": "string"})),
+		mcp.WithString("send_updates", mcp.Description("Guest email policy: all (default when event has guests), externalOnly, or none.")),
 		mcp.WithString("timezone", mcp.Description("Timezone (e.g. America/Los_Angeles).")),
 		mcp.WithBoolean("add_google_meet", mcp.Description("true=add Meet, false=remove, omit=unchanged.")),
 	)
@@ -516,7 +526,8 @@ func handleModifyEvent(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 			eventBody.End = eventDateTime(s, timezone)
 		}
 
-		// Handle attendees
+		// Handle attendees (capture prior guests before mutating shared eventBody).
+		hadGuests := len(existing.Attendees) > 0
 		attendeeList := getStringSlice(request, "attendees")
 		if attendeeList != nil {
 			eventBody.Attendees = nil
@@ -591,8 +602,18 @@ func handleModifyEvent(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 			}
 		}
 
-		updated, err := svc.Events.Update(calendarID, eventID, eventBody).
-			ConferenceDataVersion(1).Do()
+		hasGuests := hadGuests || len(attendeeList) > 0
+		sendUpdates, errMsg := resolveSendUpdates(request, hasGuests)
+		if errMsg != "" {
+			return mcp.NewToolResultError(errMsg), nil
+		}
+
+		call := svc.Events.Update(calendarID, eventID, eventBody).
+			ConferenceDataVersion(1)
+		if sendUpdates != "" {
+			call = call.SendUpdates(sendUpdates)
+		}
+		updated, err := call.Do()
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("modifying event: %v", err)), nil
 		}
@@ -792,11 +813,11 @@ func handleDeleteEvent(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 
 func registerQueryFreebusy(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := newMCPTool("calendar_query_freebusy",
-		mcp.WithDescription("Free/busy blocks in a time range. Event titles → calendar_list_events."),
+		mcp.WithDescription("Busy blocks for one or more calendars (ids or person emails). Use for mutual availability / find a time between people. Titles → calendar_list_events. Book → calendar_create_event with attendees."),
 		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
 		mcp.WithString("time_min", mcp.Required(), mcp.Description("Range start RFC3339.")),
 		mcp.WithString("time_max", mcp.Required(), mcp.Description("Range end RFC3339.")),
-		mcp.WithArray("calendar_ids", mcp.Description("Calendar ids. Default: primary."), mcp.Items(map[string]any{"type": "string"})),
+		mcp.WithArray("calendar_ids", mcp.Description("Calendar ids or emails; pass 2+ for mutual free/busy. Default: primary."), mcp.Items(map[string]any{"type": "string"})),
 	)
 	s.AddTool(tool, handleQueryFreebusy(getClient))
 }
@@ -900,6 +921,25 @@ func handleQueryFreebusy(getClient httpClientFunc) mcpserver.ToolHandlerFunc {
 }
 
 // --- Helper functions ---
+
+// resolveSendUpdates returns the Calendar API sendUpdates value.
+// When omitted: "all" if the event has (or is getting) guests, else "".
+// Explicit values: all | externalOnly | none.
+func resolveSendUpdates(request mcp.CallToolRequest, hasGuests bool) (string, string) {
+	sendUpdates := strings.TrimSpace(request.GetString("send_updates", ""))
+	if sendUpdates == "" {
+		if hasGuests {
+			return "all", ""
+		}
+		return "", ""
+	}
+	switch sendUpdates {
+	case "all", "externalOnly", "none":
+		return sendUpdates, ""
+	default:
+		return "", "send_updates must be all, externalOnly, or none"
+	}
+}
 
 // eventTime extracts the display time from an EventDateTime.
 func eventTime(edt *calendar.EventDateTime) string {

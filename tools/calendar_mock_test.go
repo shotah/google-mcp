@@ -320,11 +320,15 @@ func TestCalendarMockCreateEvent(t *testing.T) {
 	})
 
 	t.Run("success_with_attendees", func(t *testing.T) {
-		ts := fakeAPIServer(t, map[string]any{
-			"/calendar/v3/calendars/primary/events": map[string]any{
-				"id":       "new-evt-003",
-				"summary":  "Planning Session",
-				"htmlLink": "https://calendar.google.com/event?eid=new-evt-003",
+		var gotSendUpdates string
+		ts := calendarFakeServer(t, map[string]any{
+			"/calendar/v3/calendars/primary/events": func(w http.ResponseWriter, r *http.Request) {
+				gotSendUpdates = r.URL.Query().Get("sendUpdates")
+				w.Header().Set("Content-Type", "application/json")
+				fmt.Fprint(w, `{
+					"id":"new-evt-003","summary":"Planning Session",
+					"htmlLink":"https://calendar.google.com/event?eid=new-evt-003"
+				}`)
 			},
 		})
 		handler := handleCreateEvent(testClientFunc(ts))
@@ -342,6 +346,54 @@ func TestCalendarMockCreateEvent(t *testing.T) {
 		}
 		if !strings.Contains(text, "Planning Session") {
 			t.Errorf("expected event summary in output")
+		}
+		if gotSendUpdates != "all" {
+			t.Errorf("expected sendUpdates=all by default with attendees, got %q", gotSendUpdates)
+		}
+	})
+
+	t.Run("send_updates_none_suppresses_invite_email", func(t *testing.T) {
+		var gotSendUpdates string
+		ts := calendarFakeServer(t, map[string]any{
+			"/calendar/v3/calendars/primary/events": func(w http.ResponseWriter, r *http.Request) {
+				gotSendUpdates = r.URL.Query().Get("sendUpdates")
+				w.Header().Set("Content-Type", "application/json")
+				fmt.Fprint(w, `{
+					"id":"new-evt-003b","summary":"Quiet Hold",
+					"htmlLink":"https://calendar.google.com/event?eid=new-evt-003b"
+				}`)
+			},
+		})
+		handler := handleCreateEvent(testClientFunc(ts))
+		text := callHandlerOK(t, handler, map[string]any{
+			"summary":           "Quiet Hold",
+			"start_time":        "2026-02-25T14:00:00Z",
+			"end_time":          "2026-02-25T16:00:00Z",
+			"attendees":         []any{"alice@example.com"},
+			"send_updates":      "none",
+			"user_google_email": "test@example.com",
+		})
+		if !strings.Contains(text, "Successfully created event") {
+			t.Errorf("expected success message, got:\n%s", text)
+		}
+		if gotSendUpdates != "none" {
+			t.Errorf("expected sendUpdates=none, got %q", gotSendUpdates)
+		}
+	})
+
+	t.Run("error_invalid_send_updates", func(t *testing.T) {
+		ts := fakeAPIServer(t, map[string]any{})
+		handler := handleCreateEvent(testClientFunc(ts))
+		text := callHandlerErr(t, handler, map[string]any{
+			"summary":           "Bad Flag",
+			"start_time":        "2026-02-25T14:00:00Z",
+			"end_time":          "2026-02-25T16:00:00Z",
+			"attendees":         []any{"alice@example.com"},
+			"send_updates":      "everyone",
+			"user_google_email": "test@example.com",
+		})
+		if !strings.Contains(text, "send_updates must be") {
+			t.Errorf("expected send_updates validation error, got:\n%s", text)
 		}
 	})
 
@@ -471,6 +523,43 @@ func TestCalendarMockModifyEvent(t *testing.T) {
 		}
 		if !strings.Contains(text, "Rescheduled Meeting") {
 			t.Errorf("expected event summary in output, got:\n%s", text)
+		}
+	})
+
+	t.Run("send_updates_all_when_existing_has_guests", func(t *testing.T) {
+		var gotSendUpdates string
+		ts := calendarFakeServer(t, map[string]any{
+			"/calendar/v3/calendars/primary/events/evt-guest": func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if r.Method == http.MethodPut {
+					gotSendUpdates = r.URL.Query().Get("sendUpdates")
+					fmt.Fprint(w, `{
+						"id":"evt-guest","summary":"Handoff",
+						"htmlLink":"https://calendar.google.com/event?eid=evt-guest"
+					}`)
+				} else {
+					fmt.Fprint(w, `{
+						"id":"evt-guest","summary":"Handoff",
+						"start":{"dateTime":"2026-02-18T16:00:00Z"},
+						"end":{"dateTime":"2026-02-18T16:30:00Z"},
+						"attendees":[{"email":"crystal@example.com"}],
+						"htmlLink":"https://calendar.google.com/event?eid=evt-guest"
+					}`)
+				}
+			},
+		})
+		handler := handleModifyEvent(testClientFunc(ts))
+		text := callHandlerOK(t, handler, map[string]any{
+			"event_id":          "evt-guest",
+			"start_time":        "2026-02-18T16:30:00Z",
+			"end_time":          "2026-02-18T17:00:00Z",
+			"user_google_email": "test@example.com",
+		})
+		if !strings.Contains(text, "Successfully modified event") {
+			t.Errorf("expected success message, got:\n%s", text)
+		}
+		if gotSendUpdates != "all" {
+			t.Errorf("expected sendUpdates=all when existing guests, got %q", gotSendUpdates)
 		}
 	})
 
