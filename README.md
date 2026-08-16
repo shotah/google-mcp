@@ -13,7 +13,7 @@ Google Workspace MCP server (Go)
 
 <p align="center">
   <strong>Give Claude, Cursor, and other MCP clients real access to your Google Workspace.</strong><br>
-  Gmail, Drive, Calendar, Docs, Sheets, and more — one small binary, no Python runtime.
+  Gmail, Drive, Calendar, Docs, Sheets, and more — one small binary.
 </p>
 
 **138 tools · 12 services · single binary · OAuth that just works**
@@ -28,28 +28,25 @@ Drop it into your MCP config and ask your agent to search mail, clean up calenda
 | **Docs / Sheets / Slides** | Read and edit Workspace files |
 | **Tasks · Contacts · Chat · Forms · Apps Script · Search** | Day-to-day Workspace automation |
 
-Built for **local, single-user** AI tool use. Need multi-user OAuth 2.1 or an HTTP server? Use the original [Python server](https://github.com/taylorwilsdon/google_workspace_mcp) — same tool surface, different deployment model.
+Built for **local, single-user** AI tool use over stdio — Claude Code, Cursor, [ai-gantry](https://github.com/shotah/ai-gantry), and other MCP hosts.
 
 ## Why this one
 
-- **Zero runtime** — download a binary (or `go install`) and run; no venv, no `uv`, no dependency churn
-- **Service-first tool names** — `google__calendar_list_events`, not ambiguous `get_events` (agent clarity over Python string parity)
+- **Zero runtime** — download a binary (or `go install`) and run
+- **Service-first tool names** — `google__calendar_list_events`, not ambiguous `get_events`
 - **Agent-friendly filters** — `--preset everyday` (personal assistant) or `lean` (tiny models), or explicit `--tools` / `--tool-tier` / `--capability`
-- **Local-first auth** — `google-mcp auth` once; tokens under `~/.google_workspace_mcp/credentials/`; MCP refreshes silently
-- **Works where you already work** — Claude Code, Cursor, and any stdio MCP client
+- **Auth that fits the host** — laptop `google-mcp auth`, or from ai-gantry chat: `/auth google` → GitHub Pages catch page → `/auth google <code>`
+- **Works where you already work** — Claude Code, Cursor, Telegram via ai-gantry, and any stdio MCP client
 
 ## Quick start
 
 ### 1. Google Cloud OAuth
 
-Reuse credentials from the [Python server](https://github.com/taylorwilsdon/google_workspace_mcp) if you already have them. Otherwise:
-
 1. Open [Google Cloud Console](https://console.cloud.google.com/)
 2. Create or select a project → **APIs & Services → OAuth consent screen**
 3. **Credentials → Create Credentials → OAuth Client ID**:
    - **Desktop Application** — laptop `google-mcp auth` (`http://localhost:4100/oauth2callback`)
-   - **Web application** — headless / chat paste flow (required for the GitHub Pages
-     catch URI). Authorized redirect URI **exactly**:
+   - **Web application** — required for [ai-gantry](https://github.com/shotah/ai-gantry) `/auth google` (GitHub Pages catch URI). Authorized redirect URI **exactly**:
      `https://shotah.github.io/ai-gantry/oauth-catch/`
      (trailing slash matters). Optional: also add the localhost URI on the same
      Web client. Forks may reuse that catch page or set `GOOGLE_OAUTH_REDIRECT_URI`
@@ -159,9 +156,13 @@ If OAuth env vars are already exported in the shell that launches your MCP clien
 
 OAuth already requests Drive + Docs + Sheets + People scopes on `google-mcp auth`. Trim with `--tools` if a persona needs a smaller surface.
 
-### 5. Authenticate once (human / CLI — not an agent tool)
+### 5. Authenticate once (human — not an agent tool)
 
-Run OAuth yourself before starting the MCP server:
+Pick the flow that matches where the binary runs. Tokens land in
+`~/.google_workspace_mcp/credentials/{email}.json`. The MCP server refreshes
+access tokens automatically — small models should not be asked to call `auth_start`.
+
+#### Laptop (local browser)
 
 ```bash
 export GOOGLE_OAUTH_CLIENT_ID="....apps.googleusercontent.com"
@@ -173,12 +174,38 @@ google-mcp auth
 # optional: google-mcp auth --email you@gmail.com
 ```
 
-A browser opens; after you approve, tokens land in `~/.google_workspace_mcp/credentials/{email}.json`. You can copy that file onto an agent host. The MCP server refreshes access tokens automatically on API calls — small models should not be asked to call `auth_start`.
+A browser opens; after you approve, credentials are written on disk. Copy that
+file onto an agent host if the MCP server runs elsewhere.
 
-Headless / Telegram (no inbound ports): `google-mcp auth url` then
-`google-mcp auth exchange <code>` — needs a **Web application** client and the
-catch URI above. Hosted guide:
-[ai-gantry docs/auth.md](https://github.com/shotah/ai-gantry/blob/main/docs/auth.md).
+#### ai-gantry / chat (`/auth google`)
+
+On a headless box (Telegram, no inbound ports) use [ai-gantry](https://github.com/shotah/ai-gantry)
+`/auth google`. That wraps `google-mcp auth url` / `auth exchange` and needs a
+**Web application** OAuth client with the catch URI above.
+
+1. In chat, run **`/auth google`**. The bot prints an authorize URL and holds a
+   PKCE verifier on disk (~10 minutes).
+2. Open the URL, sign in, and approve access. Google redirects to the deployed
+   GitHub Pages catch page:
+   [shotah.github.io/ai-gantry/oauth-catch/](https://shotah.github.io/ai-gantry/oauth-catch/).
+   That page only displays the `?code=` value (copy button) — it stores nothing.
+3. Copy the code from the catch page and paste it back in chat:
+
+   ```text
+   /auth google <code>
+   ```
+
+   ai-gantry exchanges the code for tokens and writes the same credential JSON
+   the laptop flow uses.
+
+Equivalent CLI (same PKCE pending file):
+
+```bash
+google-mcp auth url
+google-mcp auth exchange <code>
+```
+
+Full host guide: [ai-gantry docs/auth.md](https://github.com/shotah/ai-gantry/blob/main/docs/auth.md).
 
 > `auth_start` remains only as a rare re-auth escape hatch (gmail / complete tier). Lean surfaces omit it.
 
@@ -189,8 +216,8 @@ catch URI above. Hosted guide:
 | Flag / command | Description | Default |
 | --- | --- | --- |
 | `auth` / `login` | First-time OAuth (human CLI); writes credential JSON | — |
-| `auth url` | Print authorize URL + hold PKCE pending (~10 min) for chat paste | — |
-| `auth exchange <code>` | Exchange pasted code → credentials on disk | — |
+| `auth url` | Print authorize URL + hold PKCE pending (~10 min); ai-gantry `/auth google` | — |
+| `auth exchange <code>` | Exchange catch-page code → credentials; ai-gantry `/auth google <code>` | — |
 | `--preset` | Named surface (see below) | unset |
 | `--tools` | Services to enable (e.g. `gmail calendar docs sheets`) | all |
 | `--tool-tier` | Depth: `core`, `extended`, or `complete` | `complete` |
@@ -254,19 +281,6 @@ Every tool is `{service}_{verb}_{object}` (snake_case). The MCP server name is `
 | Send mail | `google__gmail_send_message` |
 | Task list | `google__tasks_list_tasks` |
 | Chat post | `google__chat_send_message` |
-
-## When to use Go vs Python
-
-| | This repo (Go) | [Python original](https://github.com/taylorwilsdon/google_workspace_mcp) |
-| --- | --- | --- |
-| Best for | Local Claude Code / Cursor / stdio MCP | Hosted or multi-user deployments |
-| Install | Single binary | Python 3.10+ + deps |
-| Tools | 138 (service-first names) | 137 (legacy names) |
-| Transport | stdio | stdio + streamable HTTP |
-| Auth | OAuth 2.0 (desktop) | OAuth 2.0 + OAuth 2.1 |
-| Multi-user | No | Yes (sessions, Valkey, etc.) |
-
-Same credentials work in both. Tool **names** diverge on purpose for agent routing.
 
 ## Tools
 
@@ -497,13 +511,9 @@ INTEGRATION_TEST_EMAIL="you@gmail.com" go test -tags integration ./tools/
 
 ## Limitations
 
-- **stdio only** — no HTTP server mode ([Python version](https://github.com/taylorwilsdon/google_workspace_mcp) has that)
-- **Single-user** — no multi-user sessions or OAuth 2.1
-- **Local MCP clients** — not aimed at hosted multi-tenant deployments
-
-## Acknowledgments
-
-Go rewrite of [google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) by [Taylor Wilsdon](https://github.com/taylorwilsdon). The Python project remains the full-featured reference for multi-user and HTTP deployments. MIT licensed.
+- **stdio only** — no HTTP server mode
+- **Single-user** — one Google account per credential file; no multi-tenant sessions
+- **Local MCP hosts** — designed for a host that launches the binary (Claude Code, Cursor, ai-gantry)
 
 ## License
 
