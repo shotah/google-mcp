@@ -77,6 +77,8 @@ func run() error {
 	args := os.Args[1:]
 	if len(args) > 0 {
 		switch args[0] {
+		case "host-manifest":
+			return writeHostManifest()
 		case "auth", "login":
 			return runAuthCommand(args[1:])
 		}
