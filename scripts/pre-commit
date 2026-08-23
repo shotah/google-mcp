@@ -2,6 +2,10 @@
 # Pre-commit: autofix → lint → test
 set -eu
 
+# Hooks are non-interactive, so ~/.bashrc is not sourced. Skip cgo so
+# golangci-lint can typecheck net on hosts without libc headers.
+export CGO_ENABLED=0
+
 ROOT=$(git rev-parse --show-toplevel)
 cd "$ROOT"
 

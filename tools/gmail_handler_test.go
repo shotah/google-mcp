@@ -5,6 +5,22 @@ import (
 	"testing"
 )
 
+func TestGmailHandlerSearchMissingEmailNamesEnvKey(t *testing.T) {
+	t.Setenv("USER_GOOGLE_EMAIL", "")
+	t.Setenv("WORKSPACE_MCP_CREDENTIALS_DIR", t.TempDir())
+	s := newToolTestServer(t)
+	t.Setenv("USER_GOOGLE_EMAIL", "")
+	text, isError := callTool(t, s, "gmail_search_messages", map[string]any{
+		"query": "from:me",
+	})
+	if !isError {
+		t.Fatal("expected isError=true")
+	}
+	if !strings.Contains(text, EnvUserGoogleEmail) {
+		t.Errorf("expected error naming %s, got %q", EnvUserGoogleEmail, text)
+	}
+}
+
 // TestGmailHandlerSearchMissingQuery verifies that gmail_search_messages
 // returns a tool-level error when the required "query" param is missing.
 func TestGmailHandlerSearchMissingQuery(t *testing.T) {

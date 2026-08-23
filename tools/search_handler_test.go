@@ -6,8 +6,8 @@ import (
 )
 
 // Search tools use GOOGLE_PSE_API_KEY and GOOGLE_PSE_ENGINE_ID env vars
-// rather than Google OAuth credentials. The error path is:
-// resolveEmail → RequireString params → newCustomSearchService (env var check).
+// rather than Google OAuth / USER_GOOGLE_EMAIL. The first real error is
+// the missing PSE key.
 
 // --- search_query ---
 
@@ -24,7 +24,7 @@ func TestSearchHandlerSearchCustomMissingQuery(t *testing.T) {
 
 func TestSearchHandlerSearchCustomMissingAPIKey(t *testing.T) {
 	s := newToolTestServer(t)
-	// Ensure PSE env vars are not set
+	t.Setenv("USER_GOOGLE_EMAIL", "")
 	t.Setenv("GOOGLE_PSE_API_KEY", "")
 	t.Setenv("GOOGLE_PSE_ENGINE_ID", "")
 	text, isError := callTool(t, s, "search_query", map[string]any{
@@ -34,6 +34,9 @@ func TestSearchHandlerSearchCustomMissingAPIKey(t *testing.T) {
 		t.Fatal("expected isError=true for missing API key")
 	}
 	lower := strings.ToLower(text)
+	if strings.Contains(lower, "user_google_email") {
+		t.Errorf("search_query must not require email, got %q", text)
+	}
 	if !strings.Contains(lower, "google_pse_api_key") {
 		t.Errorf("expected error mentioning 'GOOGLE_PSE_API_KEY', got %q", text)
 	}

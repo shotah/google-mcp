@@ -82,7 +82,7 @@ func handleSearchGmailMessages(getClient httpClientFunc) mcpserver.ToolHandlerFu
 		}
 		email, err := resolveEmail(request)
 		if err != nil {
-			return needArg("user_google_email", `gmail_search_messages(query="…")`), nil
+			return needArg(EnvUserGoogleEmail, `gmail_search_messages(query="…")`), nil
 		}
 		pageSize := request.GetInt("page_size", 10)
 		pageToken := request.GetString("page_token", "")

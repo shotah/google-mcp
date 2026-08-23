@@ -80,8 +80,8 @@ func TestResolveEmailErrorWhenNoSource(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "user_google_email is required") {
-		t.Errorf("error should mention user_google_email is required, got: %v", err)
+	if !strings.Contains(err.Error(), EnvUserGoogleEmail+" is required") {
+		t.Errorf("error should mention %s is required, got: %v", EnvUserGoogleEmail, err)
 	}
 }
 

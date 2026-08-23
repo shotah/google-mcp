@@ -19,6 +19,9 @@ BUMP ?= patch
 # Optional: `make test PKG=./tools/...` or `make coverage PKG=./...`
 PKG ?= ./...
 
+# Steam Deck / hosts without libc headers: typecheck net without cgo.
+export CGO_ENABLED ?= 0
+
 BINARY := google-mcp
 ifeq ($(OS),Windows_NT)
 EXE := .exe
@@ -89,7 +92,7 @@ test-short: ## Unit tests with -short
 	go test -short $(PKG)
 
 test-race: ## Unit tests with the race detector (slower, worth it)
-	go test -race $(PKG)
+	CGO_ENABLED=1 go test -race $(PKG)
 
 # Default coverage scope excludes CLI mains (cmd/google-mcp, cmd/release).
 # Override: make coverage PKG=./...

@@ -40,7 +40,7 @@ func resolveEmail(request mcp.CallToolRequest) (string, error) {
 		return users[0], nil
 	}
 
-	return "", errors.New("user_google_email is required: provide it as a parameter, set USER_GOOGLE_EMAIL env var, or use --single-user with one credential file")
+	return "", errors.New(EnvUserGoogleEmail + " is required (or pass user_google_email)")
 }
 
 // RegisterAllTools registers tools for all enabled services based on config.
