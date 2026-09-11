@@ -116,7 +116,7 @@ func executeSearch(ctx context.Context, q string, num, start int, safe string, s
 
 func registerSearchCustom(s *mcpserver.MCPServer) {
 	tool := newMCPTool("search_query",
-		mcp.WithDescription("Programmable Search (needs GOOGLE_PSE_API_KEY + GOOGLE_PSE_ENGINE_ID). General web: use google-search__web_search. Not Gmail — use gmail_search_messages. Site-limited: search_query_siterestrict."),
+		mcp.WithDescription("Programmable Search (needs GOOGLE_PSE_API_KEY + GOOGLE_PSE_ENGINE_ID). General web: use web_search. Not Gmail — use gmail_search_messages. Site-limited: search_query_siterestrict."),
 		mcp.WithString("q", mcp.Required(), mcp.Description("Search query.")),
 	)
 	RegisterTool(s, tool, handleSearchCustom)
@@ -276,7 +276,7 @@ func valueOrDefault(value, fallback string) string {
 
 func registerSearchCustomSiterestrict(s *mcpserver.MCPServer) {
 	tool := newMCPTool("search_query_siterestrict",
-		mcp.WithDescription("Web search limited to specific site(s) via Programmable Search. Needs GOOGLE_PSE_API_KEY + GOOGLE_PSE_ENGINE_ID. Broader web: google-search__web_search or search_query."),
+		mcp.WithDescription("Web search limited to specific site(s) via Programmable Search. Needs GOOGLE_PSE_API_KEY + GOOGLE_PSE_ENGINE_ID. Broader web: web_search or search_query."),
 		mcp.WithString("q",
 			mcp.Required(),
 			mcp.Description("The search query."),
