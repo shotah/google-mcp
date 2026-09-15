@@ -296,11 +296,51 @@ func TestResolveCredentialDir_FallbackToGoogle(t *testing.T) {
 func TestResolveCredentialDir_Default(t *testing.T) {
 	t.Setenv("WORKSPACE_MCP_CREDENTIALS_DIR", "")
 	t.Setenv("GOOGLE_MCP_CREDENTIALS_DIR", "")
+	t.Setenv("DATA_DIR", "")
 	got := resolveCredentialDir()
 	home, _ := os.UserHomeDir()
 	want := filepath.Join(home, ".google_workspace_mcp", "credentials")
 	if got != want {
 		t.Errorf("resolveCredentialDir = %q, want %q", got, want)
+	}
+}
+
+func TestResolveCredentialDir_DataDirBeatsDistrolessHome(t *testing.T) {
+	t.Setenv("WORKSPACE_MCP_CREDENTIALS_DIR", "")
+	t.Setenv("GOOGLE_MCP_CREDENTIALS_DIR", "")
+	t.Setenv("DATA_DIR", "/data")
+	t.Setenv("HOME", "/home/nonroot")
+	got := resolveCredentialDir()
+	want := filepath.FromSlash("/data/.google_workspace_mcp/credentials")
+	if got != want {
+		t.Errorf("resolveCredentialDir = %q, want %q (DATA_DIR volume, not overlay HOME)", got, want)
+	}
+}
+
+func TestStoreCredential_WritesUnderDataDirNotHome(t *testing.T) {
+	data := t.TempDir()
+	home := t.TempDir()
+	t.Setenv("WORKSPACE_MCP_CREDENTIALS_DIR", "")
+	t.Setenv("GOOGLE_MCP_CREDENTIALS_DIR", "")
+	t.Setenv("DATA_DIR", data)
+	t.Setenv("HOME", home)
+
+	store := NewCredentialStore()
+	tok := oauth2Token("access-tok", "refresh-tok", time.Date(2026, 6, 15, 10, 30, 0, 0, time.UTC))
+	if err := store.StoreCredential("ada@example.com", &StoredCredential{
+		Token:  &tok,
+		Config: newTestConfig("cid", "csecret"),
+	}); err != nil {
+		t.Fatalf("StoreCredential: %v", err)
+	}
+
+	want := filepath.Join(data, ".google_workspace_mcp", "credentials", "ada@example.com.json")
+	if _, err := os.Stat(want); err != nil {
+		t.Fatalf("credential missing on DATA_DIR volume: %v", err)
+	}
+	overlay := filepath.Join(home, ".google_workspace_mcp", "credentials", "ada@example.com.json")
+	if _, err := os.Stat(overlay); err == nil {
+		t.Fatalf("credential leaked to HOME overlay %s — recreate would drop it", overlay)
 	}
 }
 

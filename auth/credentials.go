@@ -39,7 +39,8 @@ type LocalDirectoryCredentialStore struct {
 // standard directory resolution order:
 //  1. WORKSPACE_MCP_CREDENTIALS_DIR (highest priority)
 //  2. GOOGLE_MCP_CREDENTIALS_DIR
-//  3. ~/.google_workspace_mcp/credentials
+//  3. $DATA_DIR/.google_workspace_mcp/credentials (gantry volume)
+//  4. ~/.google_workspace_mcp/credentials
 func NewCredentialStore() *LocalDirectoryCredentialStore {
 	dir := resolveCredentialDir()
 	return &LocalDirectoryCredentialStore{Dir: dir}
@@ -139,6 +140,11 @@ func resolveCredentialDir() string {
 	}
 	if dir := os.Getenv("GOOGLE_MCP_CREDENTIALS_DIR"); dir != "" {
 		return expandHome(dir)
+	}
+	// Gantry bind-mounts DATA_DIR. Distroless HOME is /home/nonroot (overlay),
+	// so preferring DATA_DIR is what makes /auth google survive recreate.
+	if data := strings.TrimSpace(os.Getenv("DATA_DIR")); data != "" {
+		return filepath.Join(expandHome(data), ".google_workspace_mcp", "credentials")
 	}
 	home, err := os.UserHomeDir()
 	if err != nil || home == "" {
