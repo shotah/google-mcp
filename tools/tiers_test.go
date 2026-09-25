@@ -187,8 +187,8 @@ func TestCapabilityReadFiltering(t *testing.T) {
 	if names["calendar_delete_event"] {
 		t.Error("calendar_delete_event must not appear under capability read")
 	}
-	if names["calendar_create_event"] {
-		t.Error("calendar_create_event must not appear under capability read")
+	if names["calendar_create_events"] {
+		t.Error("calendar_create_events must not appear under capability read")
 	}
 }
 
@@ -202,8 +202,8 @@ func TestCapabilityEditFiltering(t *testing.T) {
 	if !names["calendar_delete_event"] {
 		t.Error("expected calendar_delete_event under capability edit")
 	}
-	if !names["calendar_create_event"] {
-		t.Error("expected calendar_create_event under capability edit")
+	if !names["calendar_create_events"] {
+		t.Error("expected calendar_create_events under capability edit")
 	}
 	for _, destructive := range []string{
 		"drive_transfer_ownership",
@@ -274,8 +274,8 @@ func TestLeanPresetSurface(t *testing.T) {
 		"calendar_list_calendars",
 		"calendar_list_events",
 		"calendar_get_event",
-		"calendar_create_event",
-		"calendar_update_event",
+		"calendar_create_events",
+		"calendar_update_events",
 		"calendar_delete_event",
 		"calendar_query_freebusy",
 	} {

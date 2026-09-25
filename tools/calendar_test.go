@@ -35,6 +35,22 @@ func TestDefaultTimeMaxAfter(t *testing.T) {
 	}
 }
 
+func TestParseEventObjects(t *testing.T) {
+	items, errMsg := parseEventObjects([]any{
+		map[string]any{"event_id": "a", "summary": "One"},
+		map[string]any{"event_id": "b", "summary": "Two"},
+	})
+	if errMsg != "" {
+		t.Fatal(errMsg)
+	}
+	if len(items) != 2 || items[1]["event_id"] != "b" {
+		t.Fatalf("items=%v", items)
+	}
+	if _, errMsg := parseEventObjects("not-json"); errMsg == "" {
+		t.Fatal("expected error for invalid events JSON")
+	}
+}
+
 func TestBogusCalendarEventID(t *testing.T) {
 	if !bogusCalendarEventID("primary") {
 		t.Fatal("primary should be bogus")

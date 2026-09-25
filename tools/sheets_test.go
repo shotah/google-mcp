@@ -9,6 +9,22 @@ import (
 
 // --- columnToIndex ---
 
+func TestParseSheetUpdates(t *testing.T) {
+	updates, errMsg := parseSheetUpdates([]any{
+		map[string]any{"range_name": "Sheet1!A1", "values": []any{[]any{"a", "b"}, []any{"1", "2"}}},
+		map[string]any{"range_name": "Sheet1!A3", "values": []any{[]any{"c"}}},
+	})
+	if errMsg != "" {
+		t.Fatal(errMsg)
+	}
+	if len(updates) != 2 || updates[0].Range != "Sheet1!A1" || len(updates[0].Values) != 2 {
+		t.Fatalf("updates=%+v", updates)
+	}
+	if _, errMsg := parseSheetUpdates([]any{map[string]any{"values": []any{[]any{"a"}}}}); errMsg == "" {
+		t.Fatal("expected missing range_name error")
+	}
+}
+
 func TestSheetsColumnToIndex(t *testing.T) {
 	tests := []struct {
 		name string

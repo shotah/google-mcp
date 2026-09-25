@@ -735,6 +735,108 @@ func formatSpreadsheetList(files []*drive.File, email, query string) string {
 	return b.String()
 }
 
+const sheetsReadRowCap = 1000
+
+func formatSheetValues(rangeName string, values [][]any, spreadsheetID, email string) string {
+	if len(values) == 0 {
+		return fmt.Sprintf("No data found in range '%s' for %s.", rangeName, email)
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "Successfully read %d rows from range '%s' in spreadsheet %s for %s:",
+		len(values), rangeName, spreadsheetID, email)
+	maxRows := min(len(values), sheetsReadRowCap)
+	firstRowLen := 0
+	if len(values) > 0 {
+		firstRowLen = len(values[0])
+	}
+	for i := range maxRows {
+		row := values[i]
+		padded := make([]any, firstRowLen)
+		copy(padded, row)
+		fmt.Fprintf(&b, "\nRow %2d: %v", i+1, padded)
+	}
+	if len(values) > sheetsReadRowCap {
+		fmt.Fprintf(&b, "\n... and %d more rows (narrow range_name)", len(values)-sheetsReadRowCap)
+	}
+	return b.String()
+}
+
+type sheetValueUpdate struct {
+	Range  string
+	Values [][]any
+}
+
+func sheetUpdateItems() mcp.PropertyOption {
+	return mcp.Items(map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"range_name": map[string]any{"type": "string", "description": "A1 range to write."},
+			"values":     map[string]any{"type": "array", "description": "2D cell values for this range.", "items": map[string]any{"type": "array"}},
+		},
+		"required": []string{"range_name", "values"},
+	})
+}
+
+func parseSheetValues(raw any) ([][]any, string) {
+	switch v := raw.(type) {
+	case string:
+		var values [][]any
+		if err := json.Unmarshal([]byte(v), &values); err != nil {
+			return nil, fmt.Sprintf("invalid JSON format for values: %v", err)
+		}
+		return values, ""
+	case []any:
+		values := make([][]any, 0, len(v))
+		for i, row := range v {
+			rowSlice, ok := row.([]any)
+			if !ok {
+				return nil, fmt.Sprintf("row %d must be a list", i)
+			}
+			values = append(values, rowSlice)
+		}
+		return values, ""
+	default:
+		return nil, "values must be a 2D array or JSON string"
+	}
+}
+
+func parseSheetUpdates(raw any) ([]sheetValueUpdate, string) {
+	var items []any
+	switch v := raw.(type) {
+	case string:
+		if err := json.Unmarshal([]byte(v), &items); err != nil {
+			return nil, fmt.Sprintf("invalid JSON format for updates: %v", err)
+		}
+	case []any:
+		items = v
+	default:
+		return nil, "updates must be an array of {range_name, values}"
+	}
+	if len(items) == 0 {
+		return nil, "updates must contain at least one range"
+	}
+	out := make([]sheetValueUpdate, 0, len(items))
+	for i, item := range items {
+		m, ok := item.(map[string]any)
+		if !ok {
+			return nil, fmt.Sprintf("updates[%d] must be an object", i)
+		}
+		rangeName, _ := m["range_name"].(string)
+		if strings.TrimSpace(rangeName) == "" {
+			return nil, fmt.Sprintf("updates[%d].range_name is required", i)
+		}
+		values, errMsg := parseSheetValues(m["values"])
+		if errMsg != "" {
+			return nil, fmt.Sprintf("updates[%d]: %s", i, errMsg)
+		}
+		if len(values) == 0 {
+			return nil, fmt.Sprintf("updates[%d].values must contain at least one row", i)
+		}
+		out = append(out, sheetValueUpdate{Range: rangeName, Values: values})
+	}
+	return out, ""
+}
+
 // --- sheets_get_spreadsheet_info ---
 
 func registerGetSpreadsheetInfo(s *mcpserver.MCPServer, getClient httpClientFunc) {
@@ -816,10 +918,11 @@ func registerGetSpreadsheetInfo(s *mcpserver.MCPServer, getClient httpClientFunc
 
 func registerReadSheetValues(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := newMCPTool("sheets_read_values",
-		mcp.WithDescription("Read cells from spreadsheet_id + range_name (e.g. Sheet1!A1:D10). Write → sheets_modify_values. New file → sheets_create_spreadsheet."),
+		mcp.WithDescription("Read a whole range in one call (many rows) from spreadsheet_id. Default A1:Z1000. Do not read one row per call. Several ranges: ranges=[\"Sheet1!A:D\",\"Sheet2!A:C\"]. Write → sheets_modify_values."),
 		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
 		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("Spreadsheet id or Sheets/Drive share URL.")),
-		mcp.WithString("range_name", mcp.Description("A1 range. Default: A1:Z1000.")),
+		mcp.WithString("range_name", mcp.Description("A1 range covering every row you need. Default: A1:Z1000. Not one row.")),
+		mcp.WithArray("ranges", mcp.Description("Several A1 ranges in this same call. Omit to use range_name."), mcp.Items(map[string]any{"type": "string"})),
 	)
 	s.AddTool(tool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		email, err := resolveEmail(request)
@@ -831,10 +934,31 @@ func registerReadSheetValues(s *mcpserver.MCPServer, getClient httpClientFunc) {
 			return googleIDError(err, "spreadsheet_id", "sheets_create_spreadsheet(title=…) then sheets_read_values(spreadsheet_id, range_name)"), nil
 		}
 		rangeName := request.GetString("range_name", "A1:Z1000")
+		ranges := getStringSlice(request, "ranges")
 
 		svc, err := newSheetsService(ctx, getClient, email)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("authentication failed: %v", err)), nil
+		}
+
+		if len(ranges) > 1 || (len(ranges) == 1 && ranges[0] != rangeName) {
+			resp, err := svc.Spreadsheets.Values.BatchGet(spreadsheetID).Ranges(ranges...).Do()
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("reading sheet values: %v", err)), nil
+			}
+			if len(resp.ValueRanges) == 0 {
+				return mcp.NewToolResultText(fmt.Sprintf("No data found in ranges %v for %s.", ranges, email)), nil
+			}
+			var b strings.Builder
+			fmt.Fprintf(&b, "Successfully read %d ranges in spreadsheet %s for %s:", len(resp.ValueRanges), spreadsheetID, email)
+			for _, vr := range resp.ValueRanges {
+				b.WriteString("\n")
+				b.WriteString(formatSheetValues(vr.Range, vr.Values, spreadsheetID, email))
+			}
+			return mcp.NewToolResultText(b.String()), nil
+		}
+		if len(ranges) == 1 {
+			rangeName = ranges[0]
 		}
 
 		resp, err := svc.Spreadsheets.Values.Get(spreadsheetID, rangeName).Do()
@@ -842,33 +966,7 @@ func registerReadSheetValues(s *mcpserver.MCPServer, getClient httpClientFunc) {
 			return mcp.NewToolResultError(fmt.Sprintf("reading sheet values: %v", err)), nil
 		}
 
-		values := resp.Values
-		if len(values) == 0 {
-			return mcp.NewToolResultText(fmt.Sprintf("No data found in range '%s' for %s.", rangeName, email)), nil
-		}
-
-		var b strings.Builder
-		fmt.Fprintf(&b, "Successfully read %d rows from range '%s' in spreadsheet %s for %s:",
-			len(values), rangeName, spreadsheetID, email)
-
-		maxRows := min(len(values), 50)
-		// Determine first row width for padding
-		firstRowLen := 0
-		if len(values) > 0 {
-			firstRowLen = len(values[0])
-		}
-		for i := range maxRows {
-			row := values[i]
-			// Pad row with empty strings
-			padded := make([]any, firstRowLen)
-			copy(padded, row)
-			fmt.Fprintf(&b, "\nRow %2d: %v", i+1, padded)
-		}
-		if len(values) > 50 {
-			fmt.Fprintf(&b, "\n... and %d more rows", len(values)-50)
-		}
-
-		return mcp.NewToolResultText(b.String()), nil
+		return mcp.NewToolResultText(formatSheetValues(rangeName, resp.Values, spreadsheetID, email)), nil
 	})
 }
 
@@ -876,12 +974,13 @@ func registerReadSheetValues(s *mcpserver.MCPServer, getClient httpClientFunc) {
 
 func registerModifySheetValues(s *mcpserver.MCPServer, getClient httpClientFunc) {
 	tool := newMCPTool("sheets_modify_values",
-		mcp.WithDescription("Write cells: spreadsheet_id + range_name + values (2D JSON). Clear range: clear_values=true. Read → sheets_read_values. Styling → sheets_format_range."),
+		mcp.WithDescription("Write many rows in one call: spreadsheet_id + range_name + values (2D array of every row). Do not call once per row. Several ranges: updates=[{range_name, values}]. Clear: clear_values=true. Read → sheets_read_values."),
 		mcp.WithString("user_google_email", mcp.Description("User Google email (or set USER_GOOGLE_EMAIL).")),
 		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("Spreadsheet id or Sheets/Drive share URL.")),
-		mcp.WithString("range_name", mcp.Required(), mcp.Description("A1 range to write or clear (e.g. Sheet1!A1).")),
-		mcp.WithString("values", mcp.Description("2D values as JSON, e.g. [[\"a\",\"b\"],[\"1\",\"2\"]].")),
-		mcp.WithBoolean("clear_values", mcp.Description("If true, clear the range instead of writing.")),
+		mcp.WithString("range_name", mcp.Description("A1 range covering every row (e.g. Sheet1!A1). Required unless updates is set.")),
+		mcp.WithArray("values", mcp.Description("2D cell values for range_name. One entry per row, e.g. [[\"a\",\"b\"],[\"1\",\"2\"]]. Include every row in this array."), mcp.Items(map[string]any{"type": "array"})),
+		mcp.WithArray("updates", mcp.Description("Several ranges in this same call: [{range_name, values}]. Prefer this over one call per row or range."), sheetUpdateItems()),
+		mcp.WithBoolean("clear_values", mcp.Description("If true, clear range_name instead of writing.")),
 	)
 	s.AddTool(tool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		email, err := resolveEmail(request)
@@ -892,16 +991,43 @@ func registerModifySheetValues(s *mcpserver.MCPServer, getClient httpClientFunc)
 		if err != nil {
 			return googleIDError(err, "spreadsheet_id", "sheets_create_spreadsheet(title=…) then sheets_modify_values(spreadsheet_id, range_name, values)"), nil
 		}
-		rangeName, err := request.RequireString("range_name")
-		if err != nil {
-			return needArg("range_name", `sheets_modify_values(spreadsheet_id, range_name="Sheet1!A1", values=[[…]])`), nil
-		}
+		rangeName := request.GetString("range_name", "")
 		valueInputOption := request.GetString("value_input_option", "USER_ENTERED")
 		clearValues := getBool(request, "clear_values", false)
+		args := request.GetArguments()
+		rawUpdates, hasUpdates := args["updates"]
+		if hasUpdates && rawUpdates != nil {
+			if _, errMsg := parseSheetUpdates(rawUpdates); errMsg != "" {
+				return mcp.NewToolResultError(errMsg), nil
+			}
+		} else if rangeName == "" {
+			return needArg("range_name", `sheets_modify_values(spreadsheet_id, range_name="Sheet1!A1", values=[[…], […]]) or updates=[{range_name, values}]`), nil
+		}
 
 		svc, err := newSheetsService(ctx, getClient, email)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("authentication failed: %v", err)), nil
+		}
+
+		if hasUpdates && rawUpdates != nil {
+			updates, errMsg := parseSheetUpdates(rawUpdates)
+			if errMsg != "" {
+				return mcp.NewToolResultError(errMsg), nil
+			}
+			data := make([]*sheets.ValueRange, 0, len(updates))
+			for _, u := range updates {
+				data = append(data, &sheets.ValueRange{Range: u.Range, Values: u.Values})
+			}
+			resp, err := svc.Spreadsheets.Values.BatchUpdate(spreadsheetID, &sheets.BatchUpdateValuesRequest{
+				ValueInputOption: valueInputOption,
+				Data:             data,
+			}).Do()
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("updating sheet values: %v", err)), nil
+			}
+			return mcp.NewToolResultText(
+				fmt.Sprintf("Successfully updated %d ranges in spreadsheet %s for %s. Updated: %d cells, %d rows, %d columns.",
+					len(updates), spreadsheetID, email, resp.TotalUpdatedCells, resp.TotalUpdatedRows, resp.TotalUpdatedColumns)), nil
 		}
 
 		if clearValues {
@@ -918,41 +1044,16 @@ func registerModifySheetValues(s *mcpserver.MCPServer, getClient httpClientFunc)
 					clearedRange, spreadsheetID, email)), nil
 		}
 
-		// Parse values
-		args := request.GetArguments()
 		rawValues, hasValues := args["values"]
 		if !hasValues || rawValues == nil {
-			return needArg("values", `sheets_modify_values(spreadsheet_id, range_name, values=[["col1","col2"],["1","2"]]) or clear_values=true`), nil
+			return needArg("values", `sheets_modify_values(spreadsheet_id, range_name, values=[["col1","col2"],["1","2"]]) or updates=[{range_name, values}] or clear_values=true`), nil
 		}
-
-		var values [][]any
-		switch v := rawValues.(type) {
-		case string:
-			if err := json.Unmarshal([]byte(v), &values); err != nil {
-				return mcp.NewToolResultError(fmt.Sprintf("invalid JSON format for values: %v", err)), nil
-			}
-		case []any:
-			for i, row := range v {
-				rowSlice, ok := row.([]any)
-				if !ok {
-					return mcp.NewToolResultError(fmt.Sprintf("row %d must be a list", i)), nil
-				}
-				values = append(values, rowSlice)
-			}
-		default:
-			return mcp.NewToolResultError("values must be a 2D array or JSON string"), nil
+		apiValues, errMsg := parseSheetValues(rawValues)
+		if errMsg != "" {
+			return mcp.NewToolResultError(errMsg), nil
 		}
-
-		if len(values) == 0 {
+		if len(apiValues) == 0 {
 			return mcp.NewToolResultError("either 'values' must be provided or 'clear_values' must be true"), nil
-		}
-
-		// Convert [][]any to [][]interface{} for the API
-		var apiValues [][]any
-		for _, row := range values {
-			apiRow := make([]any, len(row))
-			copy(apiRow, row)
-			apiValues = append(apiValues, apiRow)
 		}
 
 		resp, err := svc.Spreadsheets.Values.Update(spreadsheetID, rangeName, &sheets.ValueRange{

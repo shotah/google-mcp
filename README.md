@@ -151,7 +151,7 @@ If OAuth env vars are already exported in the shell that launches your MCP clien
 | Find a file / Doc by name or share URL | `drive` / `docs` / `sheets` (in `everyday`) | paste a share URL into `docs_get_content` / `sheets_read_values`, or `drive_search_files` / `docs_search` / `sheets_list_spreadsheets` by title |
 | Find a sheet by name (Sheets-only) | `sheets` + `--tool-tier extended` | `sheets_list_spreadsheets` (uses Drive API under the hood) |
 | Invite / email someone by name | `contacts` (in `everyday`) | `contacts_search` → email → calendar/gmail |
-| Find a time between people | `calendar` (in `everyday`) | `contacts_search` → `calendar_query_freebusy` (emails in `calendar_ids`) → `calendar_create_event` with `attendees` |
+| Find a time between people | `calendar` (in `everyday`) | `contacts_search` → `calendar_query_freebusy` (emails in `calendar_ids`) → `calendar_create_events` with `attendees` |
 | Tasks / todos | `tasks` (in `everyday`) | Use `task_list_id="@default"` for the account default list |
 
 OAuth already requests Drive + Docs + Sheets + People scopes on `google-mcp auth`. Trim with `--tools` if a persona needs a smaller surface.
@@ -276,7 +276,7 @@ Every tool is `{service}_{verb}_{object}` (snake_case). The MCP server name is `
 | Intent | Tool |
 | --- | --- |
 | Calendar tomorrow | `google__calendar_list_events` |
-| Add a meeting | `google__calendar_create_event` |
+| Add meetings | `google__calendar_create_events` |
 | Search mail | `google__gmail_search_messages` |
 | Send mail | `google__gmail_send_message` |
 | Task list | `google__tasks_list_tasks` |
@@ -341,8 +341,8 @@ Every tool is `{service}_{verb}_{object}` (snake_case). The MCP server name is `
 | `calendar_list_calendars` | core     | List user's calendars      |
 | `calendar_list_events`     | core     | List events in a time range |
 | `calendar_get_event`       | core     | Get one event by event_id  |
-| `calendar_create_event`   | core     | Create calendar event      |
-| `calendar_update_event`   | core     | Update event details       |
+| `calendar_create_events`  | core     | Create one or many events in one call |
+| `calendar_update_events`  | core     | Update one or many events in one call |
 | `calendar_delete_event`   | core     | Delete event               |
 | `calendar_query_freebusy` | core     | Mutual free/busy (multi-calendar) |
 

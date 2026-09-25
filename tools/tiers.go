@@ -62,8 +62,8 @@ var tierTools = map[string]map[string][]string{
 			"calendar_list_calendars",
 			"calendar_list_events",
 			"calendar_get_event",
-			"calendar_create_event",
-			"calendar_update_event",
+			"calendar_create_events",
+			"calendar_update_events",
 			"calendar_delete_event",   // everyday dedupe / cleanup — keep in core+edit
 			"calendar_query_freebusy", // mutual availability — everyday scheduling
 		},
