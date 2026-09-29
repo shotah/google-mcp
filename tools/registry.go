@@ -4,7 +4,6 @@ package tools
 import (
 	"errors"
 	"os"
-	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
@@ -24,13 +23,13 @@ func RegisterTool(s *mcpserver.MCPServer, tool mcp.Tool, handler mcpserver.ToolH
 func resolveEmail(request mcp.CallToolRequest) (string, error) {
 	// 1. Try the explicit request parameter.
 	email, _ := request.RequireString("user_google_email")
-	if strings.TrimSpace(email) != "" {
-		return email, nil
+	if canonical := auth.CanonicalEmail(email); canonical != "" {
+		return canonical, nil
 	}
 
 	// 2. Fall back to USER_GOOGLE_EMAIL env var.
-	if envEmail := os.Getenv("USER_GOOGLE_EMAIL"); strings.TrimSpace(envEmail) != "" {
-		return envEmail, nil
+	if canonical := auth.CanonicalEmail(os.Getenv("USER_GOOGLE_EMAIL")); canonical != "" {
+		return canonical, nil
 	}
 
 	// 3. Fall back to the single credential in the store (single-user mode).
@@ -78,7 +77,9 @@ func RegisterAllTools(s *mcpserver.MCPServer, cfg server.Config) {
 		}
 	}
 
-	// Register meta-tools (not tied to a specific service).
+	// Signed-in accounts are useful on every surface, including calendar-only.
+	RegisterListAccountsTool(s)
+
 	// auth_start is under gmail/complete in tier config but is
 	// registered independently. It loads when gmail is enabled or all tools are loaded.
 	if allTools || enabled["gmail"] {

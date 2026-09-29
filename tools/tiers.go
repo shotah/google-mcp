@@ -33,6 +33,13 @@ var tierTools = map[string]map[string][]string{
 			"auth_start",
 		},
 	},
+	"auth": {
+		"core": {
+			"auth_list_accounts",
+		},
+		"extended": {},
+		"complete": {},
+	},
 	"drive": {
 		"core": {
 			"drive_search_files",
@@ -256,6 +263,8 @@ var destructiveTools = map[string]bool{
 // readOnlyTools is the set of tools that are allowed in --read-only mode /
 // --capability read. All other tools require write scopes.
 var readOnlyTools = map[string]bool{
+	// Auth
+	"auth_list_accounts": true,
 	// Gmail
 	"gmail_search_messages":    true,
 	"gmail_get_message":        true,

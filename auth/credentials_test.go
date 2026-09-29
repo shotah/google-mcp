@@ -219,6 +219,44 @@ func TestDeleteCredential_Missing(t *testing.T) {
 	}
 }
 
+func TestCanonicalEmailMatchesMixedCaseFile(t *testing.T) {
+	dir := t.TempDir()
+	writeCred(t, dir, "Ada@gmail.com", credentialJSON{Token: "ya29.legacy"})
+	store := &LocalDirectoryCredentialStore{Dir: dir}
+
+	got, err := store.GetCredential("ada@gmail.com")
+	if err != nil {
+		t.Fatalf("GetCredential: %v", err)
+	}
+	if got == nil || got.Token.AccessToken != "ya29.legacy" {
+		t.Fatalf("mixed-case file not found via lowercase lookup: %+v", got)
+	}
+
+	if err := store.StoreCredential("Ada+News@gmail.com", &StoredCredential{
+		Token:  &oauth2.Token{AccessToken: "ya29.plus"},
+		Config: newTestConfig("cid", "secret"),
+	}); err != nil {
+		t.Fatalf("StoreCredential: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "ada+news@gmail.com.json")); err != nil {
+		t.Fatalf("plus-address file: %v", err)
+	}
+	users, err := store.ListUsers()
+	if err != nil {
+		t.Fatalf("ListUsers: %v", err)
+	}
+	found := map[string]bool{}
+	for _, u := range users {
+		found[u] = true
+	}
+	if !found["ada@gmail.com"] || !found["ada+news@gmail.com"] {
+		t.Fatalf("users = %v", users)
+	}
+	if found["Ada@gmail.com"] {
+		t.Fatal("list should return canonical lowercase addresses")
+	}
+}
+
 func TestListUsers(t *testing.T) {
 	dir := t.TempDir()
 	for _, email := range []string{"alice@example.com", "bob@example.com"} {

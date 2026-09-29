@@ -2,9 +2,11 @@ package auth
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -46,10 +48,22 @@ func NewCredentialStore() *LocalDirectoryCredentialStore {
 	return &LocalDirectoryCredentialStore{Dir: dir}
 }
 
+// CanonicalEmail is the credential-file key for an address.
+// Comparison is case-insensitive. Plus-addresses stay distinct.
+func CanonicalEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
 // GetCredential reads and parses a credential file for the given email.
 // Returns nil, nil if the file does not exist.
 func (s *LocalDirectoryCredentialStore) GetCredential(email string) (*StoredCredential, error) {
-	path := s.credentialPath(email)
+	path, err := s.findCredentialFile(email)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("reading credential file: %w", err)
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -67,7 +81,13 @@ func (s *LocalDirectoryCredentialStore) GetCredential(email string) (*StoredCred
 }
 
 // StoreCredential writes a credential file for the given email.
+// The file name is the canonical (lowercase) address. An older mixed-case
+// file for the same address is removed so the account cannot split in two.
 func (s *LocalDirectoryCredentialStore) StoreCredential(email string, cred *StoredCredential) error {
+	email = CanonicalEmail(email)
+	if email == "" {
+		return errors.New("email is empty")
+	}
 	if err := os.MkdirAll(s.Dir, 0o700); err != nil {
 		return fmt.Errorf("creating credential directory: %w", err)
 	}
@@ -90,17 +110,28 @@ func (s *LocalDirectoryCredentialStore) StoreCredential(email string, cred *Stor
 	}
 
 	path := s.credentialPath(email)
-	return os.WriteFile(path, data, 0o600)
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		return err
+	}
+	s.removeCaseVariants(email)
+	return nil
 }
 
-// DeleteCredential removes the credential file for the given email.
+// DeleteCredential removes the credential file for the given email,
+// including an older mixed-case filename for the same address.
 func (s *LocalDirectoryCredentialStore) DeleteCredential(email string) error {
-	path := s.credentialPath(email)
-	err := os.Remove(path)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("deleting credential file: %w", err)
+	email = CanonicalEmail(email)
+	if email == "" {
+		return nil
 	}
-	return nil
+	var firstErr error
+	for _, path := range s.matchingCredentialFiles(email) {
+		err := os.Remove(path)
+		if err != nil && !os.IsNotExist(err) && firstErr == nil {
+			firstErr = fmt.Errorf("deleting credential file: %w", err)
+		}
+	}
+	return firstErr
 }
 
 // ListUsers returns the email addresses that have stored credentials.
@@ -113,13 +144,21 @@ func (s *LocalDirectoryCredentialStore) ListUsers() ([]string, error) {
 		return nil, fmt.Errorf("listing credential directory: %w", err)
 	}
 
+	seen := make(map[string]bool)
 	var users []string
 	for _, e := range entries {
 		name := e.Name()
-		if !e.IsDir() && strings.HasSuffix(name, ".json") {
-			users = append(users, strings.TrimSuffix(name, ".json"))
+		if e.IsDir() || !strings.HasSuffix(name, ".json") {
+			continue
 		}
+		email := CanonicalEmail(strings.TrimSuffix(name, ".json"))
+		if email == "" || seen[email] {
+			continue
+		}
+		seen[email] = true
+		users = append(users, email)
 	}
+	sort.Strings(users)
 	return users, nil
 }
 
@@ -129,7 +168,57 @@ func (s *LocalDirectoryCredentialStore) CredentialPath(email string) string {
 }
 
 func (s *LocalDirectoryCredentialStore) credentialPath(email string) string {
-	return filepath.Join(s.Dir, email+".json")
+	return filepath.Join(s.Dir, CanonicalEmail(email)+".json")
+}
+
+// findCredentialFile returns the canonical path, or a legacy mixed-case
+// filename written before addresses were canonicalized.
+func (s *LocalDirectoryCredentialStore) findCredentialFile(email string) (string, error) {
+	email = CanonicalEmail(email)
+	if email == "" {
+		return "", os.ErrNotExist
+	}
+	path := s.credentialPath(email)
+	if _, err := os.Stat(path); err == nil {
+		return path, nil
+	} else if !os.IsNotExist(err) {
+		return "", err
+	}
+	matches := s.matchingCredentialFiles(email)
+	if len(matches) == 0 {
+		return "", os.ErrNotExist
+	}
+	return matches[0], nil
+}
+
+func (s *LocalDirectoryCredentialStore) matchingCredentialFiles(email string) []string {
+	email = CanonicalEmail(email)
+	if email == "" {
+		return nil
+	}
+	entries, err := os.ReadDir(s.Dir)
+	if err != nil {
+		return nil
+	}
+	want := email + ".json"
+	var matches []string
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || !strings.EqualFold(name, want) {
+			continue
+		}
+		matches = append(matches, filepath.Join(s.Dir, name))
+	}
+	return matches
+}
+
+func (s *LocalDirectoryCredentialStore) removeCaseVariants(email string) {
+	keep := s.credentialPath(email)
+	for _, path := range s.matchingCredentialFiles(email) {
+		if path != keep {
+			_ = os.Remove(path)
+		}
+	}
 }
 
 // resolveCredentialDir determines the credential directory using env vars

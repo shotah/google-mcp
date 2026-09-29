@@ -16,7 +16,7 @@ Google Workspace MCP server (Go)
   Gmail, Drive, Calendar, Docs, Sheets, and more — one small binary.
 </p>
 
-**138 tools · 12 services · single binary · OAuth that just works**
+**139 tools · 12 services · single binary · OAuth that just works**
 
 Drop it into your MCP config and ask your agent to search mail, clean up calendar duplicates, draft Docs, or update Sheets — with a permission surface you control (`read` / `edit` / `complete`).
 
@@ -102,14 +102,14 @@ go install github.com/shotah/google-mcp@latest
 ```bash
 export GOOGLE_OAUTH_CLIENT_ID="your-client-id.apps.googleusercontent.com"
 export GOOGLE_OAUTH_CLIENT_SECRET="your-client-secret"
-export USER_GOOGLE_EMAIL="you@gmail.com"  # optional but recommended
+export USER_GOOGLE_EMAIL="you@gmail.com"  # optional default account; omit when several accounts are logged in
 ```
 
 ### 4. MCP client config
 
 Use server id **`google`** so hosts expose tools as `google__calendar_list_events` (short server + service-prefixed tool).
 
-**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks, Contacts, Drive (~37 core tools). Resolve people, find files by name or share URL, draft notes, schedule, todos:
+**Personal assistant (recommended default)** — mail, calendar, Docs, Sheets, Tasks, Contacts, Drive (~38 core tools). Resolve people, find files by name or share URL, draft notes, schedule, todos:
 
 ```json
 {
@@ -126,6 +126,8 @@ Use server id **`google`** so hosts expose tools as `google__calendar_list_event
   }
 }
 ```
+
+`USER_GOOGLE_EMAIL` is the default when a call omits `user_google_email`. Drop that env entry when more than one account is logged in. See [docs/multi-account.md](docs/multi-account.md).
 
 **Tiny local models** (e.g. Qwen 35B) — starve harder with `--preset lean` (~12 tools: Gmail + Calendar only).
 
@@ -159,8 +161,10 @@ OAuth already requests Drive + Docs + Sheets + People scopes on `google-mcp auth
 ### 5. Authenticate once (human — not an agent tool)
 
 Pick the flow that matches where the binary runs. Tokens land in
-`~/.google_workspace_mcp/credentials/{email}.json`. The MCP server refreshes
-access tokens automatically — small models should not be asked to call `auth_start`.
+`~/.google_workspace_mcp/credentials/{email}.json`, one file per Google account.
+Run auth again for each additional account; earlier files stay. The MCP server
+refreshes access tokens automatically — small models should not be asked to call
+`auth_start`. How a call chooses an account: [docs/multi-account.md](docs/multi-account.md).
 
 #### Laptop (local browser)
 
@@ -228,8 +232,8 @@ Full host guide: [ai-gantry docs/auth.md](https://github.com/shotah/ai-gantry/bl
 
 | Preset | Services | Tier / capability | ~Tools | Use when |
 | --- | --- | --- | --- | --- |
-| `everyday` | gmail, calendar, docs, sheets, tasks, contacts, drive | core / edit | ~37 | Personal assistant (recommended) |
-| `lean` | gmail, calendar | core / edit | ~12 | Tiny local models; mail + calendar only |
+| `everyday` | gmail, calendar, docs, sheets, tasks, contacts, drive | core / edit | ~38 | Personal assistant (recommended) |
+| `lean` | gmail, calendar | core / edit | ~13 | Tiny local models; mail + calendar only |
 
 ### Tool tiers (how deep each service goes)
 
@@ -237,9 +241,9 @@ Full host guide: [ai-gantry docs/auth.md](https://github.com/shotah/ai-gantry/bl
 
 | Tier | Meaning | Count (all services) |
 | --- | --- | --- |
-| `core` | Everyday path an assistant actually needs | 49 |
-| `extended` | Discovery / management (list-by-name, filters, …) | 94 |
-| `complete` | Rare / power-user extras | 138 |
+| `core` | Everyday path an assistant actually needs | 53 |
+| `extended` | Discovery / management (list-by-name, filters, …) | 95 |
+| `complete` | Rare / power-user extras | 139 |
 
 Example: `--tools sheets --tool-tier core` → create/read/write cells. Need “find my sheet by name”? Use `extended` (`sheets_list_spreadsheets`) — still no Drive tools.
 
@@ -247,9 +251,9 @@ Example: `--tools sheets --tool-tier core` → create/read/write cells. Need “
 
 | Capability | Description | Count |
 | --- | --- | --- |
-| `read` | Read-only (same as `--read-only`) | 60 |
-| `edit` | Everyday create/modify/delete; blocks high-impact ops | 132 |
-| `complete` | Full surface including ownership transfer & bulk deletes | 138 |
+| `read` | Read-only (same as `--read-only`) | 61 |
+| `edit` | Everyday create/modify/delete; blocks high-impact ops | 133 |
+| `complete` | Full surface including ownership transfer & bulk deletes | 139 |
 
 Withheld under `edit`: `drive_transfer_ownership`, `contacts_batch_delete`, `tasks_delete_tasklist`, `contacts_delete_group`, `appscript_delete_project`, `tasks_clear_completed`.
 
@@ -259,7 +263,7 @@ Withheld under `edit`: `drive_transfer_ownership`, `contacts_batch_delete`, `tas
 | --- | --- | --- |
 | `GOOGLE_OAUTH_CLIENT_ID` | Yes | OAuth 2.0 Client ID |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | Yes | OAuth 2.0 Client Secret |
-| `USER_GOOGLE_EMAIL` | No | Default account email |
+| `USER_GOOGLE_EMAIL` | No | Default account when a tool call omits `user_google_email`. Leave unset if more than one account is logged in and the caller should name the address every time. |
 | `GOOGLE_OAUTH_REDIRECT_URI` | No | Override catch-page redirect for `auth url` / `exchange` (default: `https://shotah.github.io/ai-gantry/oauth-catch/`) |
 | `WORKSPACE_MCP_CREDENTIALS_DIR` | No | Override credential directory |
 | `GOOGLE_PSE_API_KEY` | No | Programmable Search Engine key |
@@ -285,7 +289,7 @@ Every tool is `{service}_{verb}_{object}` (snake_case). The MCP server name is `
 ## Tools
 
 <details>
-<summary><strong>Full tool reference (138 tools across 12 services)</strong></summary>
+<summary><strong>Full tool reference (139 tools across 12 services)</strong></summary>
 
 ### Gmail (15 tools)
 
@@ -311,6 +315,7 @@ Every tool is `{service}_{verb}_{object}` (snake_case). The MCP server name is `
 
 | Tool                | Tier     | Description                       |
 | ------------------- | -------- | --------------------------------- |
+| `auth_list_accounts` | core | Signed-in Google accounts (emails only) |
 | `auth_start` | complete | Rare re-auth escape hatch (prefer `google-mcp auth`) |
 
 ### Google Drive (16 tools)
@@ -494,7 +499,9 @@ Every tool is `{service}_{verb}_{object}` (snake_case). The MCP server name is `
 
 ## Credential storage
 
-Tokens live as JSON under `~/.google_workspace_mcp/credentials/` (`{email}.json`). Directory is `0700`, files are `0600`. Override with `WORKSPACE_MCP_CREDENTIALS_DIR`.
+Tokens live as JSON under `~/.google_workspace_mcp/credentials/` (`{email}.json`). Directory is `0700`, files are `0600`. Override with `WORKSPACE_MCP_CREDENTIALS_DIR` (or `GOOGLE_MCP_CREDENTIALS_DIR`). On a gantry host, `DATA_DIR` is preferred so the files survive recreate.
+
+Several accounts are already supported: one file per address, selected by `user_google_email` on the tool call. Details, including what ai-gantry and gantree still need to pass through: [docs/multi-account.md](docs/multi-account.md).
 
 ## Development
 
@@ -512,7 +519,7 @@ INTEGRATION_TEST_EMAIL="you@gmail.com" go test -tags integration ./tools/
 ## Limitations
 
 - **stdio only** — no HTTP server mode
-- **Single-user** — one Google account per credential file; no multi-tenant sessions
+- **One file per account** — several Google accounts can be logged in; the tool argument `user_google_email` picks the file. There is no per-caller session. See [docs/multi-account.md](docs/multi-account.md).
 - **Local MCP hosts** — designed for a host that launches the binary (Claude Code, Cursor, ai-gantry)
 
 ## License

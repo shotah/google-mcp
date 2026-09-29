@@ -13,6 +13,33 @@ import (
 	google "github.com/shotah/google-mcp/internal/google"
 )
 
+// RegisterListAccountsTool registers auth_list_accounts.
+// It returns email addresses only, never token material.
+func RegisterListAccountsTool(s *mcpserver.MCPServer) {
+	store := auth.NewCredentialStore()
+	s.AddTool(
+		newMCPTool("auth_list_accounts",
+			mcp.WithDescription("List Google accounts signed in on this host (email addresses only). Use to choose an account, then pass that address as user_google_email. Not for finding people — use contacts_search."),
+		),
+		func(_ context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			users, err := store.ListUsers()
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("listing accounts: %v", err)), nil
+			}
+			if len(users) == 0 {
+				return mcp.NewToolResultText("No Google accounts are signed in. A person runs `google-mcp auth` once per account."), nil
+			}
+			var b strings.Builder
+			fmt.Fprintf(&b, "Signed-in Google accounts (%d):", len(users))
+			for _, email := range users {
+				fmt.Fprintf(&b, "\n- %s", email)
+			}
+			b.WriteString("\nPass one of these as user_google_email on later calls.")
+			return mcp.NewToolResultText(b.String()), nil
+		},
+	)
+}
+
 // RegisterAuthTools registers the auth_start meta-tool.
 // It is filtered out when MCP_ENABLE_OAUTH21=true.
 func RegisterAuthTools(s *mcpserver.MCPServer) {
